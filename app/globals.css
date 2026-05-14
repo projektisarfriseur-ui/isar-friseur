@@ -1,0 +1,182 @@
+/* ============================================================
+   Isar Friseur — Design Tokens (Good Hair Group system)
+   ============================================================ */
+
+@font-face {
+  font-family: 'Bebas Neue';
+  src: url('/fonts/BebasNeue-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-Light.ttf') format('truetype'); font-weight: 300; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-Italic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Mulish'; src: url('/fonts/Mulish-Black.ttf') format('truetype'); font-weight: 900; font-display: swap; }
+
+:root {
+  /* Brand */
+  --ghg-rust:           #a04f07;
+  --ghg-copper:         #b85933;
+  --ghg-copper-tint:    rgba(184, 89, 51, 0.4);
+  --ghg-copper-glow:    rgba(184, 89, 51, 0.5);
+
+  /* Neutrals */
+  --ghg-ink:            #020202;
+  --ghg-graphite:       #2b2b2b;
+  --ghg-charcoal:       #333333;
+  --ghg-slate:          #3c4043;
+  --ghg-mid:            #69727d;
+  --ghg-silver:         #bbbbbb;
+  --ghg-stone:          #e8eaed;
+  --ghg-sand:           #e5e3df;
+  --ghg-cream:          #f5f2f2;
+  --ghg-paper:          #ffffff;
+
+  --ghg-gradient-divider: linear-gradient(to right,
+    rgba(184, 89, 51, 0.4), rgb(184, 89, 51) 4%, rgba(184, 89, 51, 0.5));
+
+  /* Semantic dark */
+  --bg:        var(--ghg-ink);
+  --fg:        var(--ghg-paper);
+  --fg-2:      rgba(255, 255, 255, 0.6);
+  --fg-3:      rgba(255, 255, 255, 0.4);
+  --accent:        var(--ghg-copper);
+  --accent-strong: var(--ghg-rust);
+  --border:        rgba(255, 255, 255, 0.15);
+  --hairline:      var(--ghg-mid);
+  --input-bg:     var(--ghg-cream);
+  --input-fg:     var(--ghg-ink);
+  --input-border: var(--ghg-mid);
+
+  /* Type */
+  --font-display: 'Bebas Neue', 'Oswald', 'Arial Narrow', sans-serif;
+  --font-body:    'Mulish', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+
+  --t-display: 56px;
+  --t-h1: 46px;
+  --t-h2: 32px;
+  --t-h3: 26px;
+  --t-h4: 20px;
+  --t-lead: 18px;
+  --t-body: 16px;
+  --t-small: 14px;
+  --t-eyebrow: 13px;
+
+  --ls-display: 0.04em;
+  --ls-eyebrow: 0.18em;
+  --ls-button: 0.14em;
+
+  /* Spacing */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:20px; --s-5:24px;
+  --s-6:28px; --s-7:40px; --s-8:50px; --s-9:67px; --s-10:70px;
+  --s-11:100px; --s-12:120px; --s-13:250px;
+
+  /* Motion */
+  --d-md: 300ms;
+  --e-brand: cubic-bezier(0.645, 0.045, 0.355, 1);
+
+  --w-content: 1140px;
+  --w-wide: 1280px;
+  --w-prose: 640px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  line-height: 1.8;
+  letter-spacing: 0.012em;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+button { font-family: inherit; cursor: pointer; }
+
+::selection { background: var(--ghg-copper); color: var(--ghg-paper); }
+
+/* Utility primitives */
+.container { max-width: var(--w-wide); margin: 0 auto; padding: 0 40px; }
+.prose { max-width: var(--w-prose); }
+
+.display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-display);
+  line-height: 1;
+  font-weight: 400;
+}
+
+.eyebrow {
+  display: inline-flex; align-items: baseline; gap: 10px;
+  font-family: var(--font-display);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+.eyebrow .num { font-size: 22px; color: var(--accent); line-height: 1; }
+.eyebrow .label { font-size: 14px; color: var(--fg-2); letter-spacing: 0.2em; }
+
+.section-heading {
+  font-family: var(--font-body);
+  font-size: var(--t-h1);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: 0.2px;
+  margin-top: 14px;
+}
+
+.copper-rule { width: 80px; height: 3px; background: var(--accent); margin: 22px 0; }
+
+.btn {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--ghg-paper);
+  border: 0;
+  padding: 14px 32px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: var(--ls-button);
+  text-transform: uppercase;
+  transition: background var(--d-md) var(--e-brand);
+}
+.btn:hover { background: var(--accent-strong); }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--ghg-paper);
+  padding: 13px 30px;
+  color: var(--ghg-paper);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: var(--ls-button);
+  text-transform: uppercase;
+  transition: all var(--d-md) var(--e-brand);
+}
+.btn-ghost:hover { background: var(--ghg-paper); color: var(--ghg-ink); }
+
+input, textarea {
+  width: 100%;
+  background: var(--input-bg);
+  color: var(--input-fg);
+  border: 1px solid var(--input-border);
+  border-radius: 0;
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea { min-height: 120px; resize: vertical; }
+
+.copper-divider { height: 4px; background: var(--ghg-gradient-divider); }
+
+@media (max-width: 768px) {
+  :root {
+    --t-display: 40px; --t-h1: 34px; --t-h2: 26px; --t-h3: 22px;
+  }
+  .container { padding: 0 20px; }
+}
