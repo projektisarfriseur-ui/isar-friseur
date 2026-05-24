@@ -28,6 +28,7 @@ export default function Wizard() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [lightbox, setLightbox] = useState(null);
 
   useEffect(() => {
     fetch('/api/services').then(r => r.json()).then(d => setServices(d.services || []));
@@ -159,23 +160,56 @@ export default function Wizard() {
         <div>
           <h2 className="section-heading">{lang === 'de' ? 'Wähle dein:e Stylist:in.' : 'Pick your stylist.'}</h2>
           <div className="copper-rule"/>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+          <p style={{ maxWidth: 720, fontSize: 15, color: 'var(--fg-2)', marginBottom: 28, lineHeight: 1.6 }}>
+            {lang === 'de'
+              ? 'Hinweis: Das ist nur deine Wunsch-Stylist:in. Falls sie oder er an deinem Termin nicht verfügbar ist, übernimmt eine andere Person aus unserem Team — alle bei uns sind erfahren und kümmern sich genauso gut um dein Haar.'
+              : 'Note: this is only your preferred stylist. If they are not available at your appointment time, another member of our team will take care of you — everyone here is experienced and will treat your hair just as well.'}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'center' }}>
             <StylistCard
               active={stylistId === 'any'}
               onClick={() => setStylistId('any')}
-              name={lang === 'de' ? 'Egal — wer frei ist' : 'No preference'}
-              role={lang === 'de' ? 'wir empfehlen einen Stylist' : 'we suggest a stylist'}
+              name={lang === 'de' ? 'Egal' : 'No preference'}
+              role={lang === 'de' ? 'wer frei ist' : 'whoever is free'}
+              placeholder="✶"
             />
             {stylists.map(st => (
               <StylistCard key={st.id}
                 active={stylistId === String(st.id)}
                 onClick={() => setStylistId(String(st.id))}
+                onInspect={st.photo_url ? () => setLightbox({ photo: st.photo_url, name: st.name, role: st.role_key || 'Stylist' }) : null}
                 name={st.name}
                 role={st.role_key || 'Stylist'}
                 photo={st.photo_url}
+                languages={st.languages || []}
+                lang={lang}
               />
             ))}
           </div>
+          {lightbox && (
+            <div
+              onClick={() => setLightbox(null)}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 100,
+                background: 'rgba(0,0,0,0.85)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 40, cursor: 'zoom-out',
+              }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                maxWidth: 560, textAlign: 'center', cursor: 'default',
+              }}>
+                <img src={lightbox.photo} alt={lightbox.name} style={{
+                  width: '100%', maxHeight: '70vh', objectFit: 'cover',
+                  border: '2px solid var(--ghg-copper)',
+                }}/>
+                <div style={{ marginTop: 18, color: 'var(--ghg-paper)', fontSize: 26, fontWeight: 600 }}>{lightbox.name}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.2em', color: 'var(--ghg-copper)', marginTop: 6 }}>{lightbox.role}</div>
+                <button onClick={() => setLightbox(null)} className="btn-ghost" style={{ marginTop: 22 }}>
+                  {lang === 'de' ? 'Schliessen' : 'Close'}
+                </button>
+              </div>
+            </div>
+          )}
           <SummaryBar lang={lang} chosen={chosen} totalDur={totalDur} priceLabel={priceLabel}>
             <button className="btn-ghost" onClick={() => setStep(1)}>{lang === 'de' ? 'Zurück' : 'Back'}</button>
             <button className="btn" onClick={() => setStep(3)}>{lang === 'de' ? 'Weiter' : 'Next'}</button>
@@ -324,22 +358,72 @@ function Steps({ step, lang }) {
   );
 }
 
-function StylistCard({ active, onClick, name, role, photo }) {
+function StylistCard({ active, onClick, onInspect, name, role, photo, placeholder, languages, lang }) {
   return (
-    <button onClick={onClick} style={{
-      background: active ? 'rgba(184,89,51,0.12)' : 'transparent',
-      border: `1px solid ${active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.18)'}`,
-      padding: 16, cursor: 'pointer', textAlign: 'left',
-      color: 'var(--ghg-paper)',
-      transition: 'all 300ms var(--e-brand)',
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        width: 240, textAlign: 'center', cursor: 'pointer',
+        color: 'var(--ghg-paper)',
+        transition: 'transform 300ms var(--e-brand)',
+        transform: active ? 'translateY(-4px)' : 'none',
+      }}>
       <div style={{
-        aspectRatio: '4/5', marginBottom: 12,
-        background: photo ? `url(${photo}) center/cover` : 'linear-gradient(135deg, #1a1410, #5a3220)',
-      }}/>
-      <div style={{ fontSize: 18, fontWeight: 600 }}>{name}</div>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.18em', color: 'var(--ghg-copper)', marginTop: 4 }}>{role}</div>
-    </button>
+        width: 220, height: 220,
+        margin: '0 auto',
+        borderRadius: '50%',
+        overflow: 'hidden',
+        border: active ? '5px solid var(--ghg-copper)' : '0',
+        boxShadow: active ? '0 0 0 4px rgba(184,89,51,0.25)' : 'none',
+        background: photo ? '#1a1410' : 'linear-gradient(135deg, #1a1410, #5a3220)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--ghg-copper)',
+        fontFamily: 'var(--font-display)',
+        fontSize: 72, letterSpacing: '0.1em',
+        transition: 'all 300ms var(--e-brand)',
+      }}>
+        {photo ? (
+          <img src={photo} alt={name} width={220} height={220} loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageRendering: '-webkit-optimize-contrast' }}/>
+        ) : (placeholder ?? (name ? name[0] : '?'))}
+      </div>
+      <div style={{ marginTop: 18, fontSize: 22, fontWeight: 600 }}>{name}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.2em', color: 'var(--ghg-copper)', marginTop: 4 }}>{role}</div>
+      {languages && languages.length > 0 && (
+        <div style={{ marginTop: 8, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {languages.map(code => (
+            <span key={code} style={{
+              fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.18em',
+              color: 'var(--ghg-paper)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              padding: '3px 8px',
+            }}>{code}</span>
+          ))}
+        </div>
+      )}
+      {onInspect && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onInspect(); }}
+          style={{
+            marginTop: 12,
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.25)',
+            color: 'var(--ghg-paper)',
+            padding: '7px 14px',
+            fontSize: 11, fontWeight: 600,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            fontFamily: 'var(--font-display)',
+            cursor: 'pointer',
+            transition: 'all 300ms var(--e-brand)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--ghg-copper)'; e.currentTarget.style.borderColor = 'var(--ghg-copper)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
+        >
+          {lang === 'de' ? 'Foto ansehen' : 'Inspect photo'}
+        </button>
+      )}
+    </div>
   );
 }
 

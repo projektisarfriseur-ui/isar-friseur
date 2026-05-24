@@ -25,7 +25,7 @@ export default function Nav() {
         display: 'flex', alignItems: 'center', gap: 28,
         paddingTop: 20, paddingBottom: 20,
       }}>
-        <a href="#top" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <a href="/#top" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: 24, letterSpacing: '0.12em',
@@ -34,7 +34,7 @@ export default function Nav() {
         </a>
         <nav className="nav-links" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 26 }}>
           {LINKS.map(l => (
-            <a key={l.id} href={`#${l.id}`} style={{
+            <a key={l.id} href={`/${l.id}`} style={{
               fontFamily: 'var(--font-body)',
               fontSize: 13, fontWeight: 600,
               letterSpacing: '0.12em',
@@ -62,7 +62,7 @@ export default function Nav() {
       {open && (
         <div style={{ background: 'var(--ghg-ink)', padding: '0 20px 20px' }}>
           {LINKS.map(l => (
-            <a key={l.id} href={`#${l.id}`} onClick={() => setOpen(false)} style={{
+            <a key={l.id} href={`/${l.id}`} onClick={() => setOpen(false)} style={{
               display: 'block', padding: '14px 0',
               fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
               letterSpacing: '0.12em', color: 'var(--ghg-paper)',

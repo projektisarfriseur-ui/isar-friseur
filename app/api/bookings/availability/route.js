@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { supa, supaConfigured } from '../../../lib/supabase';
-import { computeSlots } from '../../../lib/dates';
+import { computeSlots, nowInBerlinHHMM, todayInBerlin } from '../../../lib/dates';
+
+const LEAD_MIN = 30;
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -11,11 +13,13 @@ export async function GET(req) {
 
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 });
 
+  const isToday = date === todayInBerlin();
+  const notBefore = isToday ? nowInBerlinHHMM(LEAD_MIN, 5) : null;
+
   if (!supaConfigured()) {
-    return NextResponse.json({
-      slots: ['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00'],
-      fallback: true,
-    });
+    let slots = ['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00'];
+    if (notBefore) slots = slots.filter(s => s >= notBefore);
+    return NextResponse.json({ slots, fallback: true });
   }
 
   const weekday = new Date(date + 'T12:00:00').getDay();
@@ -49,6 +53,7 @@ export async function GET(req) {
     durationMin: duration,
     slotMinutes: settings.slot_minutes || 30,
     bufferMin: settings.buffer_minutes || 10,
+    notBefore,
   });
 
   return NextResponse.json({ slots });
