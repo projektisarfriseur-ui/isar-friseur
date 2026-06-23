@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useLang } from '../lib/i18n';
+import { findPerson } from '../lib/people';
 
 const GROUP_LABELS = {
   women: { de: 'DAMEN', en: 'WOMEN' },
@@ -10,8 +12,14 @@ const GROUP_LABELS = {
 };
 
 function fmtDate(d) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
+
+// persist the whole booking flow so leaving + returning resumes where you left off
+const STORE_KEY = 'isar_booking_v1';
 
 export default function Wizard() {
   const { lang } = useLang();
@@ -28,12 +36,44 @@ export default function Wizard() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
-  const [lightbox, setLightbox] = useState(null);
+  const [monthCursor, setMonthCursor] = useState(() => {
+    const d = new Date(); d.setDate(1); d.setHours(12, 0, 0, 0); return d;
+  });
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     fetch('/api/services').then(r => r.json()).then(d => setServices(d.services || []));
     fetch('/api/stylists').then(r => r.json()).then(d => setStylists(d.stylists || []));
   }, []);
+
+  // restore saved progress on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.step) setStep(s.step);
+        if (Array.isArray(s.selectedIds)) setSelectedIds(s.selectedIds);
+        if (s.stylistId) setStylistId(s.stylistId);
+        if (s.date) setDate(s.date);
+        if (s.time) setTime(s.time);
+        if (s.form) setForm(f => ({ ...f, ...s.form }));
+        if (s.monthCursor) { const d = new Date(s.monthCursor); if (!isNaN(d.getTime())) setMonthCursor(d); }
+      }
+    } catch {}
+    setHydrated(true);
+  }, []);
+
+  // save progress whenever it changes (after hydration, so we don't clobber it)
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        step, selectedIds, stylistId, date, time, form,
+        monthCursor: monthCursor.toISOString(),
+      }));
+    } catch {}
+  }, [hydrated, step, selectedIds, stylistId, date, time, form, monthCursor]);
 
   const grouped = useMemo(() => {
     const g = {};
@@ -61,14 +101,8 @@ export default function Wizard() {
       .then(d => { setSlots(d.slots || []); setSlotsLoading(false); });
   }, [date, totalDur, stylistId]);
 
-  const next7 = useMemo(() => {
-    const arr = [];
-    const today = new Date(); today.setHours(12, 0, 0, 0);
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(today); d.setDate(today.getDate() + i);
-      arr.push(d);
-    }
-    return arr;
+  const today = useMemo(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
   }, []);
 
   async function submit() {
@@ -89,6 +123,7 @@ export default function Wizard() {
     const j = await r.json();
     setSubmitting(false);
     if (!r.ok) { setError(j.error || 'Fehler'); return; }
+    try { localStorage.removeItem(STORE_KEY); } catch {}
     setDone(true);
   }
 
@@ -119,7 +154,7 @@ export default function Wizard() {
           <div className="copper-rule"/>
           {Object.keys(GROUP_LABELS).map(gk => grouped[gk] && (
             <div key={gk} style={{ marginBottom: 36 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: '0.18em', color: 'var(--ghg-copper)', marginBottom: 12 }}>
+              <div style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--ghg-copper)', marginBottom: 12, textTransform: 'uppercase' }}>
                 {GROUP_LABELS[gk][lang]}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
@@ -133,12 +168,12 @@ export default function Wizard() {
                         background: sel ? 'var(--ghg-copper)' : 'transparent',
                         color: sel ? '#fff' : 'var(--ghg-paper)',
                         border: `1px solid ${sel ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.18)'}`,
-                        padding: '14px 16px',
+                        padding: '18px 22px',
                         cursor: 'pointer',
                         transition: 'all 300ms var(--e-brand)',
                       }}>
-                      <div style={{ fontSize: 14, fontWeight: 600 }}>{lang === 'de' ? s.name_de : s.name_en}</div>
-                      <div style={{ fontSize: 12, color: sel ? 'rgba(255,255,255,0.85)' : 'var(--fg-2)', marginTop: 4 }}>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, letterSpacing: '0.02em', lineHeight: 1.25 }}>{lang === 'de' ? s.name_de : s.name_en}</div>
+                      <div style={{ fontSize: 12, color: sel ? 'rgba(255,255,255,0.85)' : 'var(--fg-2)', marginTop: 6, letterSpacing: '0.04em', wordSpacing: '0.08em' }}>
                         {s.is_fixed_price ? `${s.price_from} €` : `${lang === 'de' ? 'ab' : 'from'} ${s.price_from} €`} · {s.duration_min} min
                       </div>
                     </button>
@@ -165,51 +200,35 @@ export default function Wizard() {
               ? 'Hinweis: Das ist nur deine Wunsch-Stylist:in. Falls sie oder er an deinem Termin nicht verfügbar ist, übernimmt eine andere Person aus unserem Team — alle bei uns sind erfahren und kümmern sich genauso gut um dein Haar.'
               : 'Note: this is only your preferred stylist. If they are not available at your appointment time, another member of our team will take care of you — everyone here is experienced and will treat your hair just as well.'}
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'center' }}>
+          <div className="stylist-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28, justifyItems: 'center', maxWidth: 960, margin: '0 auto' }}>
             <StylistCard
               active={stylistId === 'any'}
               onClick={() => setStylistId('any')}
               name={lang === 'de' ? 'Egal' : 'No preference'}
-              role={lang === 'de' ? 'wer frei ist' : 'whoever is free'}
+              subtitle={lang === 'de' ? 'Wer gerade frei ist' : "Anyone that's free"}
               placeholder="✶"
+              lang={lang}
             />
-            {stylists.map(st => (
-              <StylistCard key={st.id}
-                active={stylistId === String(st.id)}
-                onClick={() => setStylistId(String(st.id))}
-                onInspect={st.photo_url ? () => setLightbox({ photo: st.photo_url, name: st.name, role: st.role_key || 'Stylist' }) : null}
-                name={st.name}
-                role={st.role_key || 'Stylist'}
-                photo={st.photo_url}
-                languages={st.languages || []}
-                lang={lang}
-              />
-            ))}
+            {stylists.map(st => {
+              const person = findPerson(st.name);
+              const photo = st.photo_url || person?.photo || null;
+              const slug = person?.slug || null;
+              return (
+                <StylistCard key={st.id}
+                  active={stylistId === String(st.id)}
+                  onClick={() => setStylistId(String(st.id))}
+                  name={st.name}
+                  photo={photo}
+                  slug={slug}
+                  lang={lang}
+                />
+              );
+            })}
           </div>
-          {lightbox && (
-            <div
-              onClick={() => setLightbox(null)}
-              style={{
-                position: 'fixed', inset: 0, zIndex: 100,
-                background: 'rgba(0,0,0,0.85)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 40, cursor: 'zoom-out',
-              }}>
-              <div onClick={e => e.stopPropagation()} style={{
-                maxWidth: 560, textAlign: 'center', cursor: 'default',
-              }}>
-                <img src={lightbox.photo} alt={lightbox.name} style={{
-                  width: '100%', maxHeight: '70vh', objectFit: 'cover',
-                  border: '2px solid var(--ghg-copper)',
-                }}/>
-                <div style={{ marginTop: 18, color: 'var(--ghg-paper)', fontSize: 26, fontWeight: 600 }}>{lightbox.name}</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.2em', color: 'var(--ghg-copper)', marginTop: 6 }}>{lightbox.role}</div>
-                <button onClick={() => setLightbox(null)} className="btn-ghost" style={{ marginTop: 22 }}>
-                  {lang === 'de' ? 'Schliessen' : 'Close'}
-                </button>
-              </div>
-            </div>
-          )}
+          <style>{`
+            @media (max-width: 760px)  { .stylist-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+            @media (max-width: 460px)  { .stylist-grid { grid-template-columns: 1fr !important; } }
+          `}</style>
           <SummaryBar lang={lang} chosen={chosen} totalDur={totalDur} priceLabel={priceLabel}>
             <button className="btn-ghost" onClick={() => setStep(1)}>{lang === 'de' ? 'Zurück' : 'Back'}</button>
             <button className="btn" onClick={() => setStep(3)}>{lang === 'de' ? 'Weiter' : 'Next'}</button>
@@ -222,24 +241,14 @@ export default function Wizard() {
         <div>
           <h2 className="section-heading">{lang === 'de' ? 'Wann passt es?' : 'When works for you?'}</h2>
           <div className="copper-rule"/>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
-            {next7.map(d => {
-              const v = fmtDate(d);
-              const dn = d.toLocaleDateString(lang === 'de' ? 'de-DE' : 'en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
-              const sel = date === v;
-              return (
-                <button key={v} onClick={() => { setDate(v); setTime(''); }}
-                  style={{
-                    background: sel ? 'var(--ghg-copper)' : 'transparent',
-                    color: sel ? '#fff' : 'var(--ghg-paper)',
-                    border: `1px solid ${sel ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.18)'}`,
-                    padding: '10px 14px', fontSize: 13, fontWeight: 600,
-                    letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
-                    transition: 'all 300ms var(--e-brand)',
-                  }}>{dn}</button>
-              );
-            })}
-          </div>
+          <Calendar
+            lang={lang}
+            today={today}
+            monthCursor={monthCursor}
+            setMonthCursor={setMonthCursor}
+            value={date}
+            onChange={(v) => { setDate(v); setTime(''); }}
+          />
 
           {date && (
             <div>
@@ -254,12 +263,12 @@ export default function Wizard() {
                       {slots.map(s => {
                         const sel = time === s;
                         return (
-                          <button key={s} onClick={() => setTime(s)} style={{
+                          <button key={s} onClick={() => setTime(s)} className="tnum" style={{
                             background: sel ? 'var(--ghg-copper)' : 'transparent',
                             color: sel ? '#fff' : 'var(--ghg-paper)',
                             border: `1px solid ${sel ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.18)'}`,
-                            padding: '8px 14px', fontSize: 14, cursor: 'pointer',
-                            transition: 'all 300ms var(--e-brand)',
+                            padding: '8px 14px', fontSize: 14, letterSpacing: '0.02em', cursor: 'pointer',
+                            transition: 'background 200ms var(--e-out), border-color 200ms var(--e-out), color 200ms var(--e-out)',
                           }}>{s}</button>
                         );
                       })}
@@ -337,35 +346,65 @@ function Steps({ step, lang }) {
   const labels = lang === 'de'
     ? ['LEISTUNG', 'STYLIST', 'ZEIT', 'DETAILS']
     : ['SERVICE', 'STYLIST', 'TIME', 'DETAILS'];
+  const progress = ((step - 1) / (labels.length - 1)) * 100;
   return (
-    <div style={{ display: 'flex', gap: 24, marginBottom: 40, flexWrap: 'wrap' }}>
-      {labels.map((l, i) => {
-        const n = i + 1;
-        const active = n === step;
-        const done = n < step;
-        return (
-          <div key={l} style={{
-            display: 'inline-flex', alignItems: 'baseline', gap: 10,
-            fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.18em',
-            color: active ? 'var(--ghg-copper)' : done ? 'var(--ghg-paper)' : 'rgba(255,255,255,0.35)',
-          }}>
-            <span style={{ fontSize: 18 }}>{String(n).padStart(2, '0')}</span>
-            <span>/ {l}</span>
-          </div>
-        );
-      })}
+    <div style={{ marginBottom: 48 }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: `repeat(${labels.length}, 1fr)`,
+        gap: 14, marginBottom: 18,
+      }}>
+        {labels.map((l, i) => {
+          const n = i + 1;
+          const active = n === step;
+          const done = n < step;
+          return (
+            <div key={l} style={{
+              display: 'flex', flexDirection: 'column', gap: 6,
+              color: active || done ? 'var(--ghg-paper)' : 'rgba(255,255,255,0.45)',
+              transition: 'color 220ms ease',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 300,
+                color: active ? 'var(--ghg-copper)' : done ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.35)',
+                lineHeight: 1,
+              }}>{String(n).padStart(2, '0')}</span>
+              <span style={{
+                fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600,
+                letterSpacing: '0.24em', textTransform: 'uppercase',
+              }}>{l}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{
+        position: 'relative', height: 2,
+        background: 'rgba(255,255,255,0.10)',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, bottom: 0,
+          width: `${progress}%`,
+          background: 'var(--ghg-copper)',
+          transition: 'width 320ms var(--e-brand)',
+        }}/>
+      </div>
     </div>
   );
 }
 
-function StylistCard({ active, onClick, onInspect, name, role, photo, placeholder, languages, lang }) {
+function StylistCard({ active, onClick, name, photo, placeholder, lang, slug, subtitle }) {
   return (
     <div
       onClick={onClick}
+      role="button"
+      aria-pressed={active}
       style={{
-        width: 240, textAlign: 'center', cursor: 'pointer',
+        textAlign: 'center', cursor: 'pointer',
         color: 'var(--ghg-paper)',
-        transition: 'transform 300ms var(--e-brand)',
+        padding: 22,
+        border: active ? '2px solid var(--ghg-copper)' : '1px solid rgba(255,255,255,0.08)',
+        background: active ? 'rgba(255,90,31,0.06)' : 'transparent',
+        boxShadow: active ? '0 18px 48px -20px rgba(255,90,31,0.45)' : 'none',
+        transition: 'all 280ms var(--e-brand)',
         transform: active ? 'translateY(-4px)' : 'none',
       }}>
       <div style={{
@@ -373,56 +412,143 @@ function StylistCard({ active, onClick, onInspect, name, role, photo, placeholde
         margin: '0 auto',
         borderRadius: '50%',
         overflow: 'hidden',
-        border: active ? '5px solid var(--ghg-copper)' : '0',
-        boxShadow: active ? '0 0 0 4px rgba(184,89,51,0.25)' : 'none',
         background: photo ? '#1a1410' : 'linear-gradient(135deg, #1a1410, #5a3220)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--ghg-copper)',
         fontFamily: 'var(--font-display)',
-        fontSize: 72, letterSpacing: '0.1em',
-        transition: 'all 300ms var(--e-brand)',
+        fontSize: 84, letterSpacing: '0.02em',
       }}>
         {photo ? (
           <img src={photo} alt={name} width={220} height={220} loading="lazy"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageRendering: '-webkit-optimize-contrast' }}/>
         ) : (placeholder ?? (name ? name[0] : '?'))}
       </div>
-      <div style={{ marginTop: 18, fontSize: 22, fontWeight: 600 }}>{name}</div>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, letterSpacing: '0.2em', color: 'var(--ghg-copper)', marginTop: 4 }}>{role}</div>
-      {languages && languages.length > 0 && (
-        <div style={{ marginTop: 8, display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {languages.map(code => (
-            <span key={code} style={{
-              fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: '0.18em',
-              color: 'var(--ghg-paper)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              padding: '3px 8px',
-            }}>{code}</span>
-          ))}
+      <div style={{ marginTop: 18, fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 30, letterSpacing: '0.01em' }}>{name}</div>
+      {subtitle && (
+        <div style={{ marginTop: 6, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--fg-2)', fontWeight: 400, letterSpacing: '0.04em' }}>
+          {subtitle}
         </div>
       )}
-      {onInspect && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onInspect(); }}
+      {slug && (
+        <Link
+          href={`/team/${slug}?from=booking`}
+          onClick={(e) => e.stopPropagation()}
           style={{
-            marginTop: 12,
+            display: 'inline-block',
+            marginTop: 14,
             background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.25)',
+            border: '1px solid rgba(255,255,255,0.3)',
             color: 'var(--ghg-paper)',
-            padding: '7px 14px',
+            padding: '9px 18px',
             fontSize: 11, fontWeight: 600,
-            letterSpacing: '0.18em',
+            letterSpacing: '0.22em',
             textTransform: 'uppercase',
-            fontFamily: 'var(--font-display)',
-            cursor: 'pointer',
-            transition: 'all 300ms var(--e-brand)',
+            fontFamily: 'var(--font-body)',
+            textDecoration: 'none',
+            transition: 'all 220ms var(--e-brand)',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--ghg-copper)'; e.currentTarget.style.borderColor = 'var(--ghg-copper)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
         >
-          {lang === 'de' ? 'Foto ansehen' : 'Inspect photo'}
-        </button>
+          {lang === 'de' ? 'Bio ansehen' : 'View Bio'}
+        </Link>
       )}
+    </div>
+  );
+}
+
+function Calendar({ lang, today, monthCursor, setMonthCursor, value, onChange }) {
+  const locale = lang === 'de' ? 'de-DE' : 'en-GB';
+  const year = monthCursor.getFullYear();
+  const month = monthCursor.getMonth();
+  const monthLabel = monthCursor.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+
+  const firstDay = new Date(year, month, 1);
+  const startWeekday = (firstDay.getDay() + 6) % 7; // Mon=0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const dowLabels = lang === 'de'
+    ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  function shift(delta) {
+    const d = new Date(monthCursor); d.setMonth(d.getMonth() + delta); setMonthCursor(d);
+  }
+
+  const minMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const canPrev = monthCursor > minMonth;
+
+  return (
+    <div style={{ maxWidth: 520, marginBottom: 36 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+        <button
+          type="button"
+          onClick={() => canPrev && shift(-1)}
+          disabled={!canPrev}
+          aria-label={lang === 'de' ? 'Vorheriger Monat' : 'Previous month'}
+          style={{
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.22)',
+            color: canPrev ? 'var(--ghg-paper)' : 'rgba(255,255,255,0.25)',
+            padding: '8px 12px', cursor: canPrev ? 'pointer' : 'not-allowed',
+            fontFamily: 'var(--font-body)', fontSize: 13,
+          }}>‹</button>
+        <div style={{
+          fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--ghg-paper)',
+          letterSpacing: '0.04em', textTransform: 'capitalize',
+        }}>{monthLabel}</div>
+        <button
+          type="button"
+          onClick={() => shift(1)}
+          aria-label={lang === 'de' ? 'Nächster Monat' : 'Next month'}
+          style={{
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.22)',
+            color: 'var(--ghg-paper)',
+            padding: '8px 12px', cursor: 'pointer',
+            fontFamily: 'var(--font-body)', fontSize: 13,
+          }}>›</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 8 }}>
+        {dowLabels.map(l => (
+          <div key={l} style={{
+            textAlign: 'center', fontFamily: 'var(--font-body)',
+            fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
+            color: 'var(--fg-2)', padding: '6px 0',
+          }}>{l}</div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={i}/>;
+          const v = fmtDate(d);
+          const sel = value === v;
+          const past = d < today;
+          const isToday = d.getTime() === today.getTime();
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => !past && onChange(v)}
+              disabled={past}
+              aria-pressed={sel}
+              style={{
+                aspectRatio: '1 / 1',
+                background: sel ? 'var(--ghg-copper)' : 'transparent',
+                color: sel ? '#fff' : past ? 'rgba(255,255,255,0.22)' : 'var(--ghg-paper)',
+                border: `1px solid ${sel ? 'var(--ghg-copper)' : isToday ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.14)'}`,
+                fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 500,
+                cursor: past ? 'not-allowed' : 'pointer',
+                transition: 'all 200ms var(--e-brand)',
+                padding: 0,
+              }}>{d.getDate()}</button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useRouter, usePathname } from 'next/navigation';
 
 const TABS = [
   { href: '/admin', label: 'DASHBOARD' },
+  { href: '/admin/calendar', label: 'KALENDER' },
   { href: '/admin/bookings', label: 'BOOKINGS' },
   { href: '/admin/services', label: 'SERVICES' },
   { href: '/admin/stylists', label: 'STYLISTS' },

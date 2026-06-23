@@ -48,7 +48,7 @@ export default function Hero() {
         <div style={{ position: 'absolute', inset: 0 }}>
           {PHOTOS.map((src, i) => {
             const dist = Math.abs(progress - i);
-            const opacity = Math.max(0, Math.min(1, 1.6 - dist * 4));
+            const opacity = Math.max(0, 1 - dist * 2.4);
             return (
               <div key={src} style={{
                 position: 'absolute', inset: 0,
@@ -59,9 +59,14 @@ export default function Hero() {
               }}/>
             );
           })}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.35) 100%)',
+            pointerEvents: 'none',
+          }}/>
         </div>
 
-        <div style={{
+        <div className="hero-counter" style={{
           position: 'absolute', left: 40, top: '50%',
           transform: 'translateY(-50%)',
           display: 'flex', flexDirection: 'column', gap: 12,
@@ -71,13 +76,15 @@ export default function Hero() {
             const active = i === activeIdx;
             return (
               <div key={i} style={{
-                fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: '0.18em',
-                color: active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.4)',
-                paddingLeft: active ? 20 : 0,
+                fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.32em', textTransform: 'uppercase',
+                fontVariantNumeric: 'tabular-nums',
+                color: active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.38)',
+                paddingLeft: active ? 22 : 0,
                 position: 'relative',
-                transition: 'color 300ms ease, padding 300ms ease',
+                transition: 'color 320ms ease, padding 320ms ease',
               }}>
-                {active && <span style={{ position: 'absolute', left: 0, top: '50%', width: 14, height: 1, background: 'var(--ghg-copper)' }}/>}
+                {active && <span style={{ position: 'absolute', left: 0, top: '50%', width: 16, height: 1, background: 'var(--ghg-copper)' }}/>}
                 {String(i + 1).padStart(2, '0')}
               </div>
             );
@@ -93,37 +100,52 @@ export default function Hero() {
           width: '100%', padding: '0 40px',
         }}>
           <div style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 18, letterSpacing: '0.22em',
+            fontFamily: 'var(--font-body)', fontWeight: 600,
+            fontSize: 11, letterSpacing: '0.34em',
             color: 'var(--ghg-copper)',
-            marginBottom: 14,
+            marginBottom: 22,
+            textTransform: 'uppercase',
           }}>{t('hero.eyebrow')}</div>
           <h1 className="display" style={{
-            fontSize: 'clamp(48px, 8vw, 112px)',
-            lineHeight: 0.95,
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(52px, 8.6vw, 128px)',
+            lineHeight: 1.04,
             margin: 0,
+            fontWeight: 300,
+            letterSpacing: '-0.012em',
+            color: '#ffffff',
+            fontKerning: 'normal',
           }}>
             {t('hero.title1')}<br/>
-            {t('hero.title2')}
+            <em style={{ fontStyle: 'italic', fontWeight: 300, letterSpacing: '-0.005em' }}>{t('hero.title2')}</em>
           </h1>
           <div style={{
-            marginTop: 28,
-            fontFamily: 'var(--font-display)', fontSize: 15, letterSpacing: '0.22em',
-            color: 'rgba(255,255,255,0.75)',
+            marginTop: 32,
+            fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, letterSpacing: '0.36em',
+            color: 'rgba(255,255,255,0.66)',
+            textTransform: 'uppercase',
           }}>{t('hero.address')}</div>
-          <div style={{ marginTop: 36, display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div style={{ marginTop: 40, display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="/booking" className="btn">{t('hero.bookBtn')}</a>
             <a href="/services" className="btn-ghost">{t('hero.pricesBtn')}</a>
           </div>
         </div>
 
-        <div style={{ position: 'absolute', right: 40, bottom: 32, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ghg-paper)', zIndex: 2 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: '0.22em' }}>{t('hero.scroll')}</span>
-          <div style={{ width: 30, height: 1, background: 'var(--ghg-paper)' }}/>
+        <div className="hero-scroll" style={{ position: 'absolute', right: 40, bottom: 32, display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,0.78)', zIndex: 2 }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase' }}>{t('hero.scroll')}</span>
+          <div style={{ width: 32, height: 1, background: 'rgba(255,255,255,0.78)' }}/>
         </div>
 
         <div className="copper-divider" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}/>
       </div>
+      <style>{`
+        @media (max-width: 700px) {
+          .hero-counter { display: none !important; }
+          .hero-scroll { right: 20px !important; bottom: 20px !important; gap: 6px !important; }
+          .hero-scroll span { font-size: 10px !important; letter-spacing: 0.28em !important; }
+          .hero-scroll > div { width: 18px !important; }
+        }
+      `}</style>
     </section>
   );
 }

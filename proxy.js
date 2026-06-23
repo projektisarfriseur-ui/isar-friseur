@@ -10,7 +10,7 @@ function secret() {
   return new TextEncoder().encode(s);
 }
 
-export async function middleware(req) {
+export async function proxy(req) {
   const { pathname } = req.nextUrl;
   if (!PROTECTED.test(pathname)) return NextResponse.next();
   if (pathname === LOGIN) return NextResponse.next();

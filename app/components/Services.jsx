@@ -32,12 +32,12 @@ const GROUPS = [
 export default function Services() {
   const { t } = useLang();
   return (
-    <section id="services" style={{ background: 'var(--ghg-ink)', padding: '120px 0' }}>
+    <section id="services" style={{ background: 'var(--ghg-graphite)', padding: '120px 0' }}>
       <div className="container">
         <Eyebrow num="03" label={t('svc.eyebrow')}/>
         <h2 className="section-heading">{t('svc.heading')}</h2>
         <div className="copper-rule"/>
-        <p style={{ maxWidth: 640, fontSize: 18, color: 'rgba(255,255,255,0.7)', marginBottom: 60 }}>
+        <p style={{ maxWidth: 640, fontSize: 18, color: 'var(--fg-2)', marginBottom: 60, fontWeight: 300 }}>
           {t('svc.intro')}
         </p>
 
@@ -45,16 +45,16 @@ export default function Services() {
           {GROUPS.map(g => (
             <div key={g.titleKey}>
               <div style={{
-                fontFamily: 'var(--font-display)', fontSize: 26, letterSpacing: '0.18em',
+                fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, fontSize: 30, letterSpacing: '0.02em',
                 color: 'var(--ghg-copper)', marginBottom: 8,
               }}>{t(g.titleKey)}</div>
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', marginBottom: 4 }}/>
+              <div style={{ height: 1, background: 'var(--border)', marginBottom: 4 }}/>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {g.rows.map(r => (
-                    <tr key={r.k} style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                      <td style={{ padding: '14px 0', fontSize: 16 }}>{t(r.k)}</td>
-                      <td style={{ padding: '14px 0', textAlign: 'right', fontSize: 16, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+                    <tr key={r.k} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '14px 0', fontSize: 16, fontWeight: 300 }}>{t(r.k)}</td>
+                      <td style={{ padding: '14px 0', textAlign: 'right', fontSize: 16, color: 'var(--fg-2)', whiteSpace: 'nowrap', fontWeight: 300 }}>
                         {r.fixed ? `${r.p} €` : `${t('svc.from')} ${r.p} €`}
                       </td>
                     </tr>
