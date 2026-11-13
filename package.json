@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "start": "next start -p 3000",
+    "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
+    "db:test": "node --env-file=.env.local scripts/test-booking-integrity.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.21",
@@ -18,8 +20,10 @@
     "framer-motion": "^12.40.0",
     "jose": "^6.2.3",
     "next": "^16.0.0",
+    "pg": "^8.23.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "resend": "^6.12.3"
+    "resend": "^6.12.3",
+    "server-only": "^0.0.1"
   }
 }
