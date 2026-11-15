@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const DICT = {
   de: {
@@ -193,19 +193,26 @@ const DICT = {
 const LangCtx = createContext({ lang: 'de', setLang: () => {}, t: (k) => k });
 
 export function LangProvider({ children }) {
-  const [lang, setLang] = useState('de');
+  const [lang, setLangState] = useState('de');
 
+  // Read the saved language once on mount. Never write here: under StrictMode
+  // effects run twice, and writing from an effect overwrote the saved choice.
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('lang') : null;
-    if (stored === 'de' || stored === 'en') setLang(stored);
+    let stored = null;
+    try { stored = window.localStorage.getItem('lang'); } catch {}
+    if (stored === 'de' || stored === 'en') setLangState(stored);
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('lang', lang);
-      document.documentElement.lang = lang;
-    }
+    document.documentElement.lang = lang;
   }, [lang]);
+
+  // Persist only when the user actually picks a language.
+  const setLang = useCallback((next) => {
+    if (next !== 'de' && next !== 'en') return;
+    setLangState(next);
+    try { window.localStorage.setItem('lang', next); } catch {}
+  }, []);
 
   const t = (key) => DICT[lang][key] ?? DICT.de[key] ?? key;
 

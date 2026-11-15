@@ -6,11 +6,11 @@ import { useLang } from '../lib/i18n';
 const IG_URL = 'https://www.instagram.com/isar_friseur';
 
 const IMAGES = [
-  { id: 2, src: '/instagram/ig-2.jpg', alt: 'Isar Friseur post 2', fallback: 'linear-gradient(135deg, #2b2b2b 0%, #ff5a1f 100%)' },
-  { id: 3, src: '/instagram/ig-3.jpg', alt: 'Isar Friseur post 3', fallback: 'linear-gradient(135deg, #020202 0%, #3c4043 100%)' },
-  { id: 4, src: '/instagram/ig-4.jpg', alt: 'Isar Friseur post 4', fallback: 'linear-gradient(135deg, #1a1410 0%, #69727d 100%)' },
-  { id: 5, src: '/instagram/ig-5.jpg', alt: 'Isar Friseur post 5', fallback: 'linear-gradient(135deg, #ff5a1f 0%, #2b2b2b 100%)' },
-  { id: 7, src: '/instagram/ig-7.jpg', alt: 'Isar Friseur post 7', fallback: '#0a0a0a', fit: 'contain' },
+  { id: 2, src: '/instagram/ig-2.webp', alt: 'Isar Friseur post 2', fallback: 'linear-gradient(135deg, #2b2b2b 0%, #ff5a1f 100%)' },
+  { id: 3, src: '/instagram/ig-3.webp', alt: 'Isar Friseur post 3', fallback: 'linear-gradient(135deg, #020202 0%, #3c4043 100%)' },
+  { id: 4, src: '/instagram/ig-4.webp', alt: 'Isar Friseur post 4', fallback: 'linear-gradient(135deg, #1a1410 0%, #69727d 100%)' },
+  { id: 5, src: '/instagram/ig-5.webp', alt: 'Isar Friseur post 5', fallback: 'linear-gradient(135deg, #ff5a1f 0%, #2b2b2b 100%)' },
+  { id: 7, src: '/instagram/ig-7.webp', alt: 'Isar Friseur post 7', fallback: '#0a0a0a', fit: 'contain' },
 ];
 
 export default function Instagram() {

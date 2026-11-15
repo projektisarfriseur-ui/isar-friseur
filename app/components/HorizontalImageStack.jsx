@@ -25,17 +25,6 @@ export default function HorizontalImageStack({
     });
   }, [images.length]);
 
-  const handleDragEnd = (_, info) => {
-    const threshold = 50;
-    if (info.offset.x < -threshold) navigate(1);
-    else if (info.offset.x > threshold) navigate(-1);
-  };
-
-  const handleWheel = (e) => {
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (Math.abs(delta) > 30) navigate(delta > 0 ? 1 : -1);
-  };
-
   const getCardStyle = (index) => {
     const total = images.length;
     let diff = index - currentIndex;
@@ -60,7 +49,6 @@ export default function HorizontalImageStack({
 
   return (
     <div
-      onWheel={handleWheel}
       style={{
         position: 'relative',
         width: '100%',
@@ -96,18 +84,14 @@ export default function HorizontalImageStack({
           if (!isVisible(index)) return null;
           const style = getCardStyle(index);
           const isCurrent = index === currentIndex;
-          const Wrapper = ({ children }) => href ? (
-            <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', height: '100%' }}>
-              {children}
-            </a>
-          ) : children;
 
           return (
             <motion.div
               key={image.id ?? index}
               style={{
                 position: 'absolute',
-                cursor: isCurrent ? 'grab' : 'pointer',
+                cursor: isCurrent && href ? 'pointer' : 'default',
+                pointerEvents: isCurrent ? 'auto' : 'none',
                 transformStyle: 'preserve-3d',
                 zIndex: style.zIndex,
               }}
@@ -119,29 +103,20 @@ export default function HorizontalImageStack({
                 zIndex: style.zIndex,
               }}
               transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 1 }}
-              drag={isCurrent ? 'x' : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
-              onDragEnd={handleDragEnd}
-              onClick={() => {
-                if (!isCurrent) setCurrentIndex(index);
-              }}
-              whileTap={{ cursor: 'grabbing' }}
             >
               <div style={{
                 position: 'relative',
                 width: cardWidth,
                 height: cardHeight,
                 overflow: 'hidden',
-                borderRadius: 22,
+                borderRadius: 8,
                 background: image.fallback || '#1a1410',
                 border: '1px solid rgba(255,255,255,0.08)',
                 boxShadow: isCurrent
                   ? '0 30px 60px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,90,31,0.25), 0 0 40px rgba(255,90,31,0.18)'
                   : '0 14px 35px -10px rgba(0,0,0,0.55)',
               }}>
-                <Wrapper>
-                  <img
+                <img
                     src={image.src}
                     alt={image.alt || `Image ${index + 1}`}
                     draggable={false}
@@ -155,11 +130,19 @@ export default function HorizontalImageStack({
                     }}
                   />
                   <div style={{
-                    position: 'absolute', inset: 0, borderRadius: 22,
+                    position: 'absolute', inset: 0, borderRadius: 8,
                     background: 'linear-gradient(to top, rgba(2,2,2,0.55) 0%, transparent 38%)',
                     pointerEvents: 'none',
                   }}/>
-                </Wrapper>
+                {href && isCurrent && (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={image.alt || 'Instagram'}
+                    style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+                  />
+                )}
               </div>
             </motion.div>
           );
@@ -175,20 +158,15 @@ export default function HorizontalImageStack({
         {images.map((_, index) => {
           const active = index === currentIndex;
           return (
-            <button
+            <span
               key={index}
-              type="button"
-              onClick={() => setCurrentIndex(index)}
-              aria-label={`Image ${index + 1}`}
+              aria-hidden="true"
               style={{
                 width: active ? 28 : 8,
                 height: 8,
                 borderRadius: 4,
                 background: active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.3)',
-                border: 0,
-                cursor: 'pointer',
                 transition: 'all 300ms var(--e-brand)',
-                padding: 0,
               }}
             />
           );
@@ -206,15 +184,14 @@ export default function HorizontalImageStack({
           transform: 'translateY(-50%)',
           width: 48, height: 48,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(2,2,2,0.55)',
-          border: '1px solid rgba(255,255,255,0.25)',
+          background: 'transparent',
+          border: '1px solid transparent',
           color: 'var(--ghg-paper)',
           cursor: 'pointer', zIndex: 6,
-          backdropFilter: 'blur(6px)',
           transition: 'all 220ms var(--e-brand)',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--ghg-copper)'; e.currentTarget.style.borderColor = 'var(--ghg-copper)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(2,2,2,0.55)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M15 6l-6 6 6 6"/>
@@ -232,15 +209,14 @@ export default function HorizontalImageStack({
           transform: 'translateY(-50%)',
           width: 48, height: 48,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(2,2,2,0.55)',
-          border: '1px solid rgba(255,255,255,0.25)',
+          background: 'transparent',
+          border: '1px solid transparent',
           color: 'var(--ghg-paper)',
           cursor: 'pointer', zIndex: 6,
-          backdropFilter: 'blur(6px)',
           transition: 'all 220ms var(--e-brand)',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--ghg-copper)'; e.currentTarget.style.borderColor = 'var(--ghg-copper)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(2,2,2,0.55)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M9 6l6 6-6 6"/>

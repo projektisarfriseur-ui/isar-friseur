@@ -27,7 +27,8 @@ const APPT_COLUMNS = `
             'duration_min', i.duration_min, 'price_minor', i.price_minor, 'price_mode', i.price_mode)
           order by i.seq), '[]'::json)
      from booking.appointment_items i where i.appointment_id = a.id) as items,
-  (select count(*)::int from booking.appointment_notes n where n.appointment_id = a.id) as notes_count`;
+  (select count(*)::int from booking.appointment_notes n where n.appointment_id = a.id) as notes_count,
+  (select p.method from booking.payments p where p.appointment_id = a.id) as payment_method`;
 
 export async function listAppointments(session, { from, to, staffId, includeCancelled }) {
   const params = [from, to];

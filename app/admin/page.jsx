@@ -9,7 +9,7 @@ import enGbLocale from '@fullcalendar/core/locales/en-gb';
 import AdminShell from './AdminShell';
 import { useMe } from './useMe';
 import { useAdminT } from './i18n';
-import PaymentBox from './PaymentBox';
+import PaymentBox, { METHOD_ICON } from './PaymentBox';
 import HistoryPanel from './HistoryPanel';
 
 const STATUS = {
@@ -109,9 +109,9 @@ export default function AdminCalendarPage() {
 
   const isBoss = me.user.isAdmin;
   return (
-    <AdminShell me={me}>
+    <AdminShell me={me} wide>
       <style>{calendarCss}</style>
-      <div className={`cal-layout${isBoss ? ' with-hist' : ''}`}>
+      <div className={`cal-layout${isBoss ? ' side-hist' : ''}`}>
       <aside className="cal-side">
         {isBoss && (
           <div role="group" aria-label={t('cal.filter')} className="cal-chips">
@@ -127,9 +127,10 @@ export default function AdminCalendarPage() {
           <input type="checkbox" checked={showCancelled} onChange={e => setShowCancelled(e.target.checked)} />
           {t('cal.showCancelled')}
         </label>
+        {isBoss && <HistoryPanel refreshKey={histKey} onDeleted={refetch} />}
       </aside>
 
-      <div style={{ position: 'relative', minWidth: 0 }}>
+      <div className="cal-scroll" style={{ position: 'relative', minWidth: 0 }}>
         {loading && <div className="cal-loading" aria-live="polite"><span className="cal-spinner" /> {t('cal.loadingEvents')}</div>}
         <FullCalendar
           key={narrow ? 'narrow' : 'wide'}
@@ -146,8 +147,13 @@ export default function AdminCalendarPage() {
           eventContent={(arg) => renderEvent(arg, isBoss, nameOf, t, lang)}
           height="auto"
           nowIndicator
-          slotMinTime="08:00:00"
-          slotMaxTime="20:00:00"
+          // Opening hours: Mon–Fri 9–19, Sat 9–17, Sun closed (Sat after 17:00 is shaded).
+          slotMinTime="09:00:00"
+          slotMaxTime="19:00:00"
+          businessHours={[
+            { daysOfWeek: [1, 2, 3, 4, 5], startTime: '09:00', endTime: '19:00' },
+            { daysOfWeek: [6], startTime: '09:00', endTime: '17:00' },
+          ]}
           scrollTime="09:00:00"
           allDaySlot={false}
           hiddenDays={[0]}
@@ -157,7 +163,6 @@ export default function AdminCalendarPage() {
           dayMaxEvents={4}
         />
       </div>
-      {isBoss && <HistoryPanel refreshKey={histKey} onDeleted={refetch} />}
       </div>
 
       {selectedId && (
@@ -175,9 +180,15 @@ export default function AdminCalendarPage() {
 
 function Chip({ active, color, onClick, children }) {
   return (
-    <button onClick={onClick} aria-pressed={active} className="cal-chip" data-active={active}>
-      {color && <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'inline-block' }} />}
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={`cal-chip${color ? ' cal-chip-filled' : ''}`}
+      data-active={active}
+      style={color ? { background: color, borderColor: color, color: readableOn(color) } : undefined}
+    >
       {children}
+      {active && color && <span aria-hidden="true" style={{ marginLeft: 'auto', fontWeight: 700 }}>✓</span>}
     </button>
   );
 }
@@ -185,19 +196,58 @@ function Chip({ active, color, onClick, children }) {
 function renderEvent(arg, isBoss, nameOf, t, lang) {
   const { appt, staffId } = arg.event.extendedProps;
   const meta = STATUS[appt.status];
+  // Short slots (< 35 min in day/week view) put time + name on one line so
+  // nothing is cut off; the status pill always sits in the top row, right side.
+  // Week view: colour + start time + a check when done. Full details on hover / click.
+  if (arg.view.type === 'timeGridWeek') {
+    const done = appt.status === 'completed';
+    const [from, to] = (arg.timeText || '').split(/ [-–] /);
+    const pay = appt.payment_method;
+    const tip = `${arg.timeText} · ${arg.event.title}${isBoss ? ` · ${nameOf(staffId)}` : ''} · ${appt.items.map(i => serviceName(i, lang)).join(', ')}`;
+    return (
+      <div className="cal-evt cal-evt-week" title={tip}>
+        <span className="cal-evt-time">
+          <span>{from}</span>{to && <> – <span>{to}</span></>}
+        </span>
+        <span className="cal-evt-wstatus">
+          {done ? '✓ ' : ''}{t(`status.${appt.status}`)}
+          {pay && <span className="cal-evt-wpay"> · {METHOD_ICON[pay]} {t(`pay.method.${pay}`)}</span>}
+        </span>
+      </div>
+    );
+  }
+  const minutes = arg.event.end ? (arg.event.end - arg.event.start) / 60000 : 60;
+  const short = arg.view.type.startsWith('timeGrid') && minutes < 35;
+  const status = appt.status !== 'confirmed' && (
+    <span className="cal-evt-status">
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta?.color }} />
+      {t(`status.${appt.status}`)}
+    </span>
+  );
+  const sub = (
+    <div className="cal-evt-sub">
+      {isBoss ? `${nameOf(staffId)} · ` : ''}{appt.items.map(i => serviceName(i, lang)).join(', ')}
+    </div>
+  );
+  if (short) {
+    return (
+      <div className="cal-evt cal-evt-short">
+        <div className="cal-evt-top">
+          {arg.timeText ? <span className="cal-evt-time">{arg.timeText}</span> : <span />}
+          {status}
+        </div>
+        <div className="cal-evt-name">{arg.event.title}</div>
+      </div>
+    );
+  }
   return (
     <div className="cal-evt">
-      {arg.timeText && <div className="cal-evt-time">{arg.timeText}</div>}
-      <div className="cal-evt-name">{arg.event.title}</div>
-      <div className="cal-evt-sub">
-        {isBoss ? `${nameOf(staffId)} · ` : ''}{appt.items.map(i => serviceName(i, lang)).join(', ')}
+      <div className="cal-evt-top">
+        {arg.timeText ? <span className="cal-evt-time">{arg.timeText}</span> : <span />}
+        {status}
       </div>
-      {appt.status !== 'confirmed' && (
-        <span className="cal-evt-status">
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta?.color }} />
-          {t(`status.${appt.status}`)}
-        </span>
-      )}
+      <div className="cal-evt-name">{arg.event.title}</div>
+      {sub}
     </div>
   );
 }
@@ -430,29 +480,57 @@ const calendarCss = `
   .fc .fc-col-header-cell-cushion { color: var(--ghg-paper); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 4px; text-decoration: none !important; }
   .fc .fc-daygrid-day-number { color: var(--ghg-paper); font-size: 0.85rem; font-weight: 700; text-decoration: none !important; }
   .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid { border-color: rgba(255,255,255,0.08); }
-  .fc .fc-timegrid-slot { height: 2.2rem; }
+  .fc .fc-timegrid-slot { height: 5rem; }
   .fc .fc-timegrid-slot-label-cushion { color: var(--fg-2); font-size: 0.8rem; font-weight: 600; }
-  .fc-event { cursor: pointer; border-radius: 6px !important; border-left-width: 3px !important; }
+  .fc-event { cursor: pointer; border-radius: 10px !important; border-width: 1px !important; box-shadow: 0 4px 14px -6px rgba(0,0,0,0.6) !important; }
+  .fc .fc-timegrid-event-harness { padding: 3px 4px; box-sizing: border-box; }
+  .fc .fc-timegrid-event-harness-inset .fc-timegrid-event { box-shadow: 0 4px 14px -6px rgba(0,0,0,0.6) !important; }
+  .fc .fc-timegrid-col-events { margin: 0 4px 0 2px; }
+  .fc .fc-daygrid-event { margin: 2px 4px !important; padding: 2px 0; }
+  .cal-evt-dim { border-style: dashed !important; }
+  .cal-evt-dim .cal-evt-name { text-decoration: line-through; opacity: 0.85; }
   @media (hover: hover) and (pointer: fine) { .fc-event:hover { filter: brightness(1.25); } }
+  .fc .fc-non-business { background: repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 6px, rgba(255,255,255,0.07) 6px 12px); }
   .fc-timegrid-now-indicator-line { border-color: var(--ghg-copper) !important; }
-  .cal-evt { padding: 2px 4px; overflow: hidden; line-height: 1.25; }
-  .cal-evt-time { font-size: 11px; font-weight: 600; opacity: 0.9; }
-  .cal-evt-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cal-evt-sub { font-size: 11.5px; font-weight: 500; opacity: 0.88; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-evt { padding: 7px 10px; overflow: hidden; line-height: 1.3; height: 100%; display: flex; flex-direction: column; gap: 3px; }
+  .cal-evt-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; min-width: 0; }
+  .cal-evt-short { padding: 5px 10px; gap: 1px; }
+  .cal-evt-week { padding: 4px 5px; gap: 1px; line-height: 1.2; }
+  .cal-evt-week .cal-evt-time { font-size: 12px; opacity: 1; white-space: normal; }
+  .cal-evt-week .cal-evt-time span { white-space: nowrap; }
+  .cal-evt-wstatus, .cal-evt-wpay { font-size: 11px; font-weight: 700; line-height: 1.25; overflow-wrap: normal; word-break: keep-all; hyphens: none; }
+  .cal-evt-wpay { font-weight: 600; opacity: 0.9; }
+  .cal-evt-done { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; }
+  .cal-evt-short .cal-evt-top { flex-wrap: nowrap; }
+  .cal-evt-short .cal-evt-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-evt-time { font-size: 12px; font-weight: 700; opacity: 0.85; white-space: nowrap; }
+  .cal-evt-name { font-size: 14.5px; font-weight: 700; white-space: normal; overflow-wrap: break-word; }
+  .cal-evt-status { flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .cal-evt-sub { font-size: 12.5px; font-weight: 600; opacity: 0.9; white-space: normal; overflow-wrap: break-word; }
   .cal-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: var(--ghg-paper); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 150ms var(--e-brand), border-color 150ms var(--e-brand); }
-  .cal-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 24px; align-items: start; }
-  .cal-side { position: sticky; top: 16px; display: grid; gap: 18px; }
-  .cal-chips { display: grid; gap: 8px; }
-  .cal-chips .cal-chip { width: 100%; justify-content: flex-start; }
-  .cal-toggle { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--ghg-paper); cursor: pointer; min-height: 44px; }
-  .cal-toggle input { width: 18px; height: 18px; accent-color: var(--ghg-copper); }
+  .cal-layout { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 20px; align-items: start; }
+  /* Left column stays put while the calendar scrolls. top = header + main padding,
+     i.e. exactly where it already sits, so it never shifts when scrolling starts. */
+  .cal-side { position: sticky; top: calc(var(--admin-head, 73px) + 32px); display: grid; gap: 14px; min-width: 0; align-content: start;
+    max-height: calc(100vh / 0.9 - var(--admin-head, 73px) - 48px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  /* Boss: customer history sits in the left column under the filters. */
+  .cal-layout.side-hist { grid-template-columns: 280px minmax(0, 1fr); }
+  .cal-side .hist { position: static; max-height: none; }
+  .cal-chips { display: grid; gap: 6px; }
+  .cal-chips .cal-chip { width: 100%; justify-content: flex-start; min-height: 35px; padding: 0 11px; font-size: 11.5px; gap: 6px; }
+  .cal-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; color: var(--ghg-paper); cursor: pointer; min-height: 35px; }
+  .cal-toggle input { width: 14px; height: 14px; accent-color: var(--ghg-copper); }
   @media (max-width: 760px) {
     .cal-layout { grid-template-columns: 1fr; gap: 16px; }
-    .cal-side { position: static; }
+    .cal-layout.side-hist { grid-template-columns: 1fr; }
+    .cal-side { position: static; max-height: none; overflow: visible; }
     .cal-chips { display: flex; flex-wrap: wrap; }
     .cal-chips .cal-chip { width: auto; }
   }
   .cal-chip[data-active="true"] { background: rgba(255,90,31,0.16); border-color: var(--ghg-copper); }
+  .cal-chip-filled { font-weight: 700; }
+  .cal-chip-filled[data-active="true"] { box-shadow: 0 0 0 2px var(--ghg-ink), 0 0 0 4px var(--ghg-paper); }
+  @media (hover: hover) and (pointer: fine) { .cal-chip-filled:hover { filter: brightness(1.08); } }
   .cal-chip:focus-visible, .cal-act:focus-visible, .cal-save:focus-visible, .cal-x:focus-visible { outline: 2px solid var(--ghg-copper); outline-offset: 2px; }
   .cal-loading { position: absolute; inset: 0; z-index: 5; display: flex; align-items: flex-start; justify-content: center; padding-top: 4rem; background: rgba(2,2,2,0.4); color: var(--fg-2); font-size: 13px; gap: 10px; pointer-events: none; }
   .cal-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25); border-top-color: var(--ghg-copper); border-radius: 50%; animation: cal-spin 0.7s linear infinite; }

@@ -9,6 +9,12 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Old .jpg team photo paths (e.g. stored in DB before migration 0005) -> .webp
+  async rewrites() {
+    return [
+      { source: '/team/:name(gulay|paula|karam|gjent|haji|about-team).jpg', destination: '/team/:name.webp' },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },

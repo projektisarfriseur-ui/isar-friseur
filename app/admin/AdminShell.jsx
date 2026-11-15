@@ -1,11 +1,23 @@
 'use client';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAdminT, LangToggle } from './i18n';
 
-export default function AdminShell({ me, children }) {
+export default function AdminShell({ me, children, wide = false }) {
   const router = useRouter();
   const path = usePathname();
   const { t } = useAdminT();
+  // Header height as a CSS var so sticky content below it (calendar sidebar)
+  // can pin exactly at its natural position and never shift on scroll.
+  const headRef = useRef(null);
+  const [headH, setHeadH] = useState(73);
+  useEffect(() => {
+    const el = headRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setHeadH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const tabs = [
     { href: '/admin', label: me?.user?.isAdmin ? t('shell.calendar') : t('shell.myCalendar') },
     ...(me?.user?.isOwner ? [{ href: '/admin/team', label: t('shell.team') }] : []),
@@ -18,8 +30,9 @@ export default function AdminShell({ me, children }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--ghg-ink)', color: 'var(--ghg-paper)' }}>
-      <header style={{ position: 'sticky', top: 0, zIndex: 30, background: 'var(--ghg-ink)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+    // zoom 0.9: at 100% browser zoom the admin looks like the owner's preferred 90% view.
+    <div style={{ minHeight: 'calc(100vh / 0.9)', background: 'var(--ghg-ink)', color: 'var(--ghg-paper)', zoom: 0.9, '--admin-head': `${headH}px` }}>
+      <header ref={headRef} style={{ position: 'sticky', top: 0, zIndex: 30, background: 'var(--ghg-ink)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 14, paddingBottom: 14, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, letterSpacing: '0.12em' }}>
             ISAR FRISEUR <span style={{ color: 'var(--ghg-copper)' }}>· TEAM</span>
@@ -47,7 +60,7 @@ export default function AdminShell({ me, children }) {
           </nav>
         </div>
       </header>
-      <main className="container" style={{ paddingTop: 32, paddingBottom: 80 }}>{children}</main>
+      <main className="container" style={{ paddingTop: 32, paddingBottom: 80, ...(wide ? { maxWidth: 'none', paddingLeft: 24, paddingRight: 24 } : {}) }}>{children}</main>
     </div>
   );
 }
