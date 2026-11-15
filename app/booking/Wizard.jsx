@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLang } from '../lib/i18n';
 import { findPerson } from '../lib/people';
@@ -19,7 +19,22 @@ function fmtDate(d) {
 }
 
 // persist the whole booking flow so leaving + returning resumes where you left off
-const STORE_KEY = 'isar_booking_v1';
+// (v2: ids now come from the booking schema)
+const STORE_KEY = 'isar_booking_v2';
+
+const ERROR_TEXT = {
+  slot_unavailable: { de: 'Diese Zeit ist gerade vergeben worden. Bitte wähle eine andere.', en: 'That time was just taken. Please pick another one.' },
+  hold_expired: { de: 'Die Reservierung ist abgelaufen. Bitte wähle die Zeit erneut.', en: 'Your reservation expired. Please pick the time again.' },
+  policy_min_notice: { de: 'Diese Zeit ist zu kurzfristig für eine Online-Buchung. Ruf uns gern an.', en: 'That time is too soon to book online. Please give us a call.' },
+  policy_horizon: { de: 'So weit im Voraus können wir noch nicht buchen.', en: 'We cannot book that far ahead yet.' },
+  invalid_input: { de: 'Bitte prüfe Name und E-Mail.', en: 'Please check your name and email.' },
+  too_many_holds: { de: 'Zu viele Versuche. Bitte warte einen Moment.', en: 'Too many attempts. Please wait a moment.' },
+};
+const errText = (code, lang) => ERROR_TEXT[code]?.[lang] || (lang === 'de' ? 'Etwas ist schiefgelaufen. Bitte versuch es noch einmal.' : 'Something went wrong. Please try again.');
+
+function newKey() {
+  return (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 export default function Wizard() {
   const { lang } = useLang();
@@ -34,16 +49,22 @@ export default function Wizard() {
   const [time, setTime] = useState('');
   const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', email: '', message: '', consent: false });
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(null);
   const [error, setError] = useState('');
+  const [hold, setHold] = useState(null);        // { holdId, expiresAt, staff }
+  const [holding, setHolding] = useState(false);
+  const [slotsVersion, setSlotsVersion] = useState(0);
+  const idemKey = useRef(null);                  // one key per confirmation attempt (SCH-13)
   const [monthCursor, setMonthCursor] = useState(() => {
     const d = new Date(); d.setDate(1); d.setHours(12, 0, 0, 0); return d;
   });
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    fetch('/api/services').then(r => r.json()).then(d => setServices(d.services || []));
-    fetch('/api/stylists').then(r => r.json()).then(d => setStylists(d.stylists || []));
+    fetch('/api/booking/catalog').then(r => r.json()).then(d => {
+      setServices(d.services || []);
+      setStylists(d.stylists || []);
+    });
   }, []);
 
   // restore saved progress on mount
@@ -92,52 +113,106 @@ export default function Wizard() {
     : allFixed ? `${totalFrom} €` : `${lang === 'de' ? 'ab' : 'from'} ${totalFrom} €`;
 
   // load slots when reaching step 3
+  const serviceKey = selectedIds.join(',');
   useEffect(() => {
-    if (!date || !totalDur) { setSlots([]); return; }
+    if (!date || !serviceKey) { setSlots([]); return; }
+    let alive = true;
     setSlotsLoading(true);
-    const q = new URLSearchParams({ date, duration: String(totalDur), stylistId });
-    fetch(`/api/bookings/availability?${q}`)
+    const q = new URLSearchParams({ date, serviceIds: serviceKey, staffId: stylistId });
+    fetch(`/api/booking/availability?${q}`)
       .then(r => r.json())
-      .then(d => { setSlots(d.slots || []); setSlotsLoading(false); });
-  }, [date, totalDur, stylistId]);
+      .then(d => { if (alive) { setSlots(d.slots || []); setSlotsLoading(false); } })
+      .catch(() => { if (alive) { setSlots([]); setSlotsLoading(false); } });
+    return () => { alive = false; };
+  }, [date, serviceKey, stylistId, slotsVersion]);
+
+  // Any change to the chosen slot invalidates the current hold.
+  useEffect(() => { setHold(null); idemKey.current = null; }, [date, time, serviceKey, stylistId]);
+
+  async function reserve() {
+    setHolding(true); setError('');
+    const r = await fetch('/api/booking/holds', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ date, time, serviceIds: selectedIds, staffId: stylistId }),
+    });
+    const j = await r.json().catch(() => ({}));
+    setHolding(false);
+    if (!r.ok) {
+      setError(errText(j.error, lang));
+      if (j.error === 'slot_unavailable') { setTime(''); setSlotsVersion(v => v + 1); }
+      return null;
+    }
+    setHold(j);
+    idemKey.current = newKey();
+    return j;
+  }
+
+  async function goToDetails() {
+    if (await reserve()) setStep(4);
+  }
 
   const today = useMemo(() => {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d;
   }, []);
 
   async function submit() {
+    if (submitting) return;
     setSubmitting(true);
     setError('');
-    const r = await fetch('/api/bookings', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        service_ids: selectedIds,
-        stylist_id: stylistId === 'any' ? null : Number(stylistId),
-        date, start_time: time,
-        first_name: form.first_name, last_name: form.last_name,
-        phone: form.phone, email: form.email, message: form.message,
-        lang,
-      }),
+    let current = hold;
+    if (!current || new Date(current.expiresAt).getTime() <= Date.now()) {
+      current = await reserve();
+      if (!current) { setSubmitting(false); return; }
+    }
+    const body = JSON.stringify({
+      first_name: form.first_name, last_name: form.last_name,
+      phone: form.phone, email: form.email, message: form.message,
+      consent: form.consent, lang,
     });
-    const j = await r.json();
+    // Retry once on a dropped connection with the SAME key: the server returns
+    // the original booking instead of creating a second one (UX-07).
+    let r, j;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        r = await fetch(`/api/booking/holds/${current.holdId}/confirm`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'idempotency-key': idemKey.current },
+          body,
+        });
+        j = await r.json().catch(() => ({}));
+        break;
+      } catch {
+        if (attempt === 1) { setSubmitting(false); setError(errText('network', lang)); return; }
+      }
+    }
     setSubmitting(false);
-    if (!r.ok) { setError(j.error || 'Fehler'); return; }
+    if (!r.ok) {
+      setError(errText(j.error, lang));
+      if (j.error === 'hold_expired' || j.error === 'hold_not_found') { setHold(null); }
+      return;
+    }
     try { localStorage.removeItem(STORE_KEY); } catch {}
-    setDone(true);
+    setDone(j);
   }
 
   if (done) {
+    const when = new Date(done.start).toLocaleString(lang === 'de' ? 'de-DE' : 'en-GB', {
+      timeZone: done.timezone, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+    });
     return (
-      <div className="container" style={{ textAlign: 'center', maxWidth: 640, paddingTop: 80, paddingBottom: 80 }}>
+      <div className="container" role="status" style={{ textAlign: 'center', maxWidth: 640, paddingTop: 80, paddingBottom: 80 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: '0.18em', color: 'var(--ghg-copper)' }}>
-          ✓ {lang === 'de' ? 'ANFRAGE GESENDET' : 'REQUEST SENT'}
+          ✓ {lang === 'de' ? 'TERMIN GEBUCHT' : 'APPOINTMENT BOOKED'}
         </div>
-        <h1 className="section-heading" style={{ marginTop: 18 }}>
-          {lang === 'de' ? 'Bitte bestätige den Termin über die E-Mail in deinem Postfach.' : 'Please confirm the appointment via the email we just sent.'}
-        </h1>
-        <p style={{ color: 'var(--fg-2)', marginTop: 18 }}>
-          {lang === 'de' ? 'Ohne Bestätigung halten wir den Slot nicht — wir wollen sichergehen, dass er auch wirklich passt.' : 'Without confirmation we cannot hold the slot — we want to be sure it works for you.'}
+        <h1 className="section-heading" style={{ marginTop: 18 }}>{when}</h1>
+        <p style={{ color: 'var(--fg-2)', marginTop: 12 }}>
+          {lang === 'de' ? `Bei ${done.staff.name} · Buchungsnummer ` : `With ${done.staff.name} · Reference `}
+          <strong style={{ color: 'var(--ghg-paper)', letterSpacing: '0.08em' }}>{done.reference}</strong>
+        </p>
+        <p style={{ color: 'var(--fg-2)', marginTop: 12, fontSize: 14 }}>
+          {lang === 'de'
+            ? 'Fraunhofer Straße 14, 80469 München. Wenn du nicht kommen kannst, sag uns bitte bis 24 Stunden vorher Bescheid.'
+            : 'Fraunhofer Straße 14, 80469 Munich. If you cannot make it, please let us know at least 24 hours in advance.'}
         </p>
       </div>
     );
@@ -279,7 +354,9 @@ export default function Wizard() {
 
           <SummaryBar lang={lang} chosen={chosen} totalDur={totalDur} priceLabel={priceLabel}>
             <button className="btn-ghost" onClick={() => setStep(2)}>{lang === 'de' ? 'Zurück' : 'Back'}</button>
-            <button className="btn" disabled={!date || !time} onClick={() => setStep(4)}>{lang === 'de' ? 'Weiter' : 'Next'}</button>
+            <button className="btn" disabled={!date || !time || holding} onClick={goToDetails}>
+              {holding ? '…' : (lang === 'de' ? 'Weiter' : 'Next')}
+            </button>
           </SummaryBar>
         </div>
       )}
@@ -322,14 +399,21 @@ export default function Wizard() {
               <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '14px 0' }}/>
               <div style={{ fontSize: 14, color: 'var(--fg-2)' }}>
                 <div>{date} · {time} ({totalDur} min)</div>
+                {hold?.staff && <div style={{ marginTop: 4 }}>{lang === 'de' ? 'Bei' : 'With'} {hold.staff.name}</div>}
                 <div style={{ marginTop: 6, color: 'var(--ghg-copper)', fontWeight: 600 }}>{priceLabel}</div>
+                {hold && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--fg-3)' }}>
+                    {lang === 'de' ? 'Für dich reserviert bis ' : 'Held for you until '}
+                    {new Date(hold.expiresAt).toLocaleTimeString(lang === 'de' ? 'de-DE' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
           <SummaryBar lang={lang} chosen={chosen} totalDur={totalDur} priceLabel={priceLabel}>
             <button className="btn-ghost" onClick={() => setStep(3)}>{lang === 'de' ? 'Zurück' : 'Back'}</button>
             <button className="btn" disabled={submitting || !form.first_name || !form.last_name || !form.email || !form.consent} onClick={submit}>
-              {submitting ? '…' : (lang === 'de' ? 'TERMIN ANFRAGEN' : 'REQUEST APPOINTMENT')}
+              {submitting ? '…' : (lang === 'de' ? 'TERMIN BUCHEN' : 'BOOK APPOINTMENT')}
             </button>
           </SummaryBar>
         </div>

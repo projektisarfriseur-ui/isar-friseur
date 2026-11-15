@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { clearAdminSession } from '../../../lib/auth';
+import { supabaseServer } from '../../../lib/supabase-auth';
 
 export async function POST() {
-  await clearAdminSession();
+  const supabase = await supabaseServer();
+  await supabase.auth.signOut();
   return NextResponse.json({ ok: true });
 }

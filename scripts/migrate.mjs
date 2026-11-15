@@ -24,7 +24,8 @@ try {
 
   for (const file of files) {
     const sql = await readFile(path.join(dir, file), 'utf8');
-    const checksum = createHash('sha256').update(sql).digest('hex');
+    // Hash with LF endings so git's core.autocrlf checkouts don't look like edits.
+    const checksum = createHash('sha256').update(sql.replace(/\r\n/g, '\n')).digest('hex');
     if (done.has(file)) {
       if (done.get(file) !== checksum) console.warn(`! ${file} changed after it was applied (not re-run)`);
       continue;

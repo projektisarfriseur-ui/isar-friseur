@@ -1,29 +1,37 @@
 import { NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { createServerClient } from '@supabase/ssr';
 
-const COOKIE = 'isar_admin';
-const PROTECTED = /^\/admin(\/.*)?$/;
-const LOGIN = '/admin/login';
-
-function secret() {
-  const s = process.env.ADMIN_COOKIE_SECRET || 'dev-cookie-secret-change-me-please-32b';
-  return new TextEncoder().encode(s);
-}
+// Public admin entry points (login + invite/password-reset landing).
+const PUBLIC_ADMIN = new Set(['/admin/login', '/admin/auth/confirm', '/admin/password']);
 
 export async function proxy(req) {
+  let res = NextResponse.next({ request: req });
+
+  // Refresh the Supabase session cookie on every admin request.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll: () => req.cookies.getAll(),
+        setAll: (list) => {
+          list.forEach(({ name, value }) => req.cookies.set(name, value));
+          res = NextResponse.next({ request: req });
+          list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+        },
+      },
+    },
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { pathname } = req.nextUrl;
-  if (!PROTECTED.test(pathname)) return NextResponse.next();
-  if (pathname === LOGIN) return NextResponse.next();
-
-  const tok = req.cookies.get(COOKIE)?.value;
-  if (!tok) return NextResponse.redirect(new URL(LOGIN, req.url));
-
-  try {
-    await jwtVerify(tok, secret());
-    return NextResponse.next();
-  } catch {
-    return NextResponse.redirect(new URL(LOGIN, req.url));
+  if (!user && !PUBLIC_ADMIN.has(pathname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/admin/login';
+    url.search = '';
+    return NextResponse.redirect(url);
   }
+  return res;
 }
 
 export const config = {
