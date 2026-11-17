@@ -24,7 +24,7 @@ export default function Nav() {
     }}>
       <div className="container" style={{
         display: 'flex', alignItems: 'center', gap: 28,
-        paddingTop: 20, paddingBottom: 20,
+        paddingTop: 14, paddingBottom: 14, minHeight: 64,
       }}>
         <a href="/#top" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{
@@ -51,30 +51,40 @@ export default function Nav() {
           <LangToggle/>
           <a href="/booking" className="btn">{t('nav.cta')}</a>
         </nav>
-        <button onClick={() => setOpen(!open)} className="nav-burger" aria-label="Menu" style={{
+        <button onClick={() => setOpen(!open)} className="nav-burger" aria-label="Menu" aria-expanded={open} aria-controls="mobile-menu" style={{
           display: 'none', background: 'transparent', border: 0,
           color: 'var(--fg)', marginLeft: 'auto',
+          width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            {open ? (
+              <>
+                <line x1="5" y1="5" x2="19" y2="19"/>
+                <line x1="19" y1="5" x2="5" y2="19"/>
+              </>
+            ) : (
+              <>
+                <line x1="3" y1="7" x2="21" y2="7"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="17" x2="21" y2="17"/>
+              </>
+            )}
           </svg>
         </button>
       </div>
       {open && (
-        <div style={{ background: 'var(--ghg-ink)', padding: '0 20px 20px' }}>
+        <div id="mobile-menu" style={{ background: 'var(--ghg-ink)', padding: '4px 20px 24px', borderTop: '1px solid var(--border)' }}>
           {LINKS.map(l => (
             <a key={l.id} href={`/${l.id}`} onClick={() => setOpen(false)} style={{
-              display: 'block', padding: '14px 0',
-              fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 400,
+              display: 'flex', alignItems: 'center', minHeight: 56,
+              fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 400,
               letterSpacing: '0.22em', color: 'var(--fg)', textTransform: 'uppercase',
               borderBottom: '1px solid var(--border)',
             }}>{t(l.key)}</a>
           ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18, flexWrap: 'wrap' }}>
-            <LangToggle/>
-            <a href="/booking" className="btn">{t('nav.cta')}</a>
+          <div style={{ display: 'grid', gap: 16, marginTop: 20 }}>
+            <div style={{ justifySelf: 'start' }}><LangToggle/></div>
+            <a href="/booking" className="btn" style={{ textAlign: 'center' }}>{t('nav.cta')}</a>
           </div>
         </div>
       )}

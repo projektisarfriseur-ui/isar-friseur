@@ -60,7 +60,7 @@ export default function HistoryPanel({ refreshKey, onDeleted }) {
 
   const errorText = error ? t(error.key, error.vars) : '';
   const noticeText = notice ? t(notice.key, notice.vars) : '';
-  const date = (iso) => new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const date = (iso) => new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return (
     <aside className="hist" aria-labelledby="hist-title">
@@ -113,11 +113,11 @@ export default function HistoryPanel({ refreshKey, onDeleted }) {
                   </span>
                   <span className="hist-row2">
                     <span className="hist-dot" style={{ background: STATUS_COLOR[lv.status] || '#fff' }} />
-                    {lv.starts_at ? date(lv.starts_at) : ''}{lv.staff ? ` · ${lv.staff}` : ''}
+                    {lv.starts_at ? date(lv.starts_at) : ''}{lv.staff ? `, ${lv.staff}` : ''}
                   </span>
                   <span className="hist-row2">
                     {c.visits === 1 ? t('hist.visits1') : t('hist.visitsN', { n: c.visits })}
-                    {' · '}
+                    {', '}
                     {lv.method
                       ? <span>{METHOD_ICON[lv.method]} {formatEuro(lv.amount_minor, locale)} {t(`pay.method.${lv.method}`)}</span>
                       : <span style={{ color: 'var(--fg-3)' }}>{t('hist.notRecorded')}</span>}
@@ -192,7 +192,7 @@ function CustomerDetail({ id, onClose, onDelete, busy, error }) {
               <div className="cust-stats">
                 <Stat label={t('hist.statVisits')} value={counted.length} />
                 <Stat label={t('hist.statPaid')} value={formatEuro(total, locale)} />
-                <Stat label={t('hist.statAvg')} value={paid.length ? formatEuro(Math.round(total / paid.length), locale) : '—'} />
+                <Stat label={t('hist.statAvg')} value={paid.length ? formatEuro(Math.round(total / paid.length), locale) : '-'} />
               </div>
 
               <div className="cal-section">
@@ -213,7 +213,7 @@ function CustomerDetail({ id, onClose, onDelete, busy, error }) {
                         <div className="cust-visit-top">
                           <span style={{ fontWeight: 600 }}>
                             {fmt(v.starts_at, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            {' · '}{fmt(v.starts_at, { hour: '2-digit', minute: '2-digit' })}
+                            {', '}{fmt(v.starts_at, { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           <span style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: STATUS_COLOR[v.status] }}>
                             {t(`status.${v.status}`)}
@@ -221,14 +221,14 @@ function CustomerDetail({ id, onClose, onDelete, busy, error }) {
                         </div>
                         <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>
                           {v.items.map(i => (lang === 'en' && i.name_en) || i.name_de).join(', ')}
-                          {staff ? ` · ${t('hist.with', { name: staff })}` : ''}
+                          {staff ? `, ${t('hist.with', { name: staff })}` : ''}
                         </div>
                         <div className="cust-visit-pay">
                           {v.payment
-                            ? <><span aria-hidden="true">{METHOD_ICON[v.payment.method]}</span> <strong>{formatEuro(v.payment.amount_minor, locale)}</strong> · {t(`pay.method.${v.payment.method}`)}
-                                <span style={{ color: 'var(--fg-3)' }}> · {t('pay.by', { name: v.payment.recorded_by_name })}</span></>
+                            ? <><span aria-hidden="true">{METHOD_ICON[v.payment.method]}</span> <strong>{formatEuro(v.payment.amount_minor, locale)}</strong>, {t(`pay.method.${v.payment.method}`)}
+                                <span style={{ color: 'var(--fg-3)' }}>, {t('pay.by', { name: v.payment.recorded_by_name })}</span></>
                             : <span style={{ color: 'var(--fg-3)' }}>{t('hist.paymentMissing')}</span>}
-                          {v.notes_count > 0 && <span style={{ color: 'var(--fg-3)' }}> · {t('hist.notes', { n: v.notes_count })}</span>}
+                          {v.notes_count > 0 && <span style={{ color: 'var(--fg-3)' }}>, {t('hist.notes', { n: v.notes_count })}</span>}
                         </div>
                         {v.cancel_reason && <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>{t('appt.cancelReason')}: {v.cancel_reason}</div>}
                       </li>

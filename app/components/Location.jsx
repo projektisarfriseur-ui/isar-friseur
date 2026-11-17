@@ -45,7 +45,6 @@ export default function Location() {
             <div style={{ marginTop: 36, borderTop: '1px solid var(--border)', paddingTop: 28 }}>
               <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, letterSpacing: '0.26em', color: 'var(--fg-2)', marginBottom: 14 }}>{t('loc.contact')}</div>
               <a href="tel:+498980039037" style={{ display: 'block', fontSize: 22, fontWeight: 400, marginBottom: 8, letterSpacing: '0.02em' }}>089 800 39 037</a>
-              <a href="mailto:burhan380@gmail.com" style={{ display: 'block', fontSize: 15, color: 'var(--fg-2)' }}>burhan380@gmail.com</a>
             </div>
           </div>
 
@@ -73,7 +72,7 @@ export default function Location() {
                   color: 'var(--ghg-paper)', background: 'rgba(0,0,0,0.6)', padding: '8px 14px',
                   textTransform: 'uppercase',
                 }}>
-                  Click to interact
+                  {t('loc.mapHint')}
                 </div>
               </div>
             )}
@@ -86,7 +85,8 @@ export default function Location() {
             grid-template-columns: 1fr !important;
             gap: 32px !important;
           }
-          .loc-map { min-height: 360px !important; }
+          .loc-map { min-height: 320px !important; }
+          .loc-left td { font-size: 16px; }
         }
       `}</style>
     </section>

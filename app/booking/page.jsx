@@ -2,7 +2,7 @@ import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 import Wizard from './Wizard';
 
-export const metadata = { title: 'Termin buchen — Isar Friseur' };
+export const metadata = { title: 'Termin buchen | Isar Friseur' };
 
 export default function BookingPage() {
   return (

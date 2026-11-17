@@ -61,8 +61,8 @@ export default function TeamPage() {
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <h2 id={`staff-${s.id}`} style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, margin: 0 }}>{s.name}</h2>
                   <div style={{ fontSize: 12, color: acc.color, marginTop: 4 }}>
-                    ● {acc.label}{s.email ? ` · ${s.email}` : ''}
-                    {s.lastSignInAt && <span style={{ color: 'var(--fg-3)' }}> · {t('team.lastSignIn', { date: new Date(s.lastSignInAt).toLocaleDateString(locale) })}</span>}
+                    ● {acc.label}{s.email ? `, ${s.email}` : ''}
+                    {s.lastSignInAt && <span style={{ color: 'var(--fg-3)' }}>, {t('team.lastSignIn', { date: new Date(s.lastSignInAt).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }) })}</span>}
                   </div>
                 </div>
               </div>

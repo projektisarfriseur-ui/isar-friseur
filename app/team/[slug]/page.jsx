@@ -79,7 +79,7 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const p = PEOPLE[slug];
   if (!p) return { title: 'Isar Friseur' };
-  return { title: `${p.name} - Work - Isar Friseur` };
+  return { title: `${p.name} | Isar Friseur` };
 }
 
 export default async function StylistGallery({ params }) {

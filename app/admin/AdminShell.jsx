@@ -35,7 +35,7 @@ export default function AdminShell({ me, children, wide = false }) {
       <header ref={headRef} style={{ position: 'sticky', top: 0, zIndex: 30, background: 'var(--ghg-ink)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 14, paddingBottom: 14, flexWrap: 'wrap' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, letterSpacing: '0.12em' }}>
-            ISAR FRISEUR <span style={{ color: 'var(--ghg-copper)' }}>· TEAM</span>
+            ISAR FRISEUR <span style={{ color: 'var(--ghg-copper)' }}>TEAM</span>
           </div>
           <nav aria-label={t('shell.nav')} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             {tabs.map(tab => {
@@ -49,7 +49,7 @@ export default function AdminShell({ me, children, wide = false }) {
             })}
             {me?.user && (
               <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>
-                {me.user.name}{me.user.isOwner ? ` · ${t('shell.boss')}` : ''}
+                {me.user.name}{me.user.isOwner ? ` (${t('shell.boss')})` : ''}
               </span>
             )}
             <LangToggle />

@@ -31,7 +31,7 @@ export default function Footer() {
             <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, letterSpacing: '0.22em', color: 'var(--ghg-copper)', marginBottom: 14 }}>{t('foot.contact')}</div>
             <p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.9, fontWeight: 300 }}>
               <a href="tel:+498980039037">089 800 39 037</a><br/>
-              <a href="mailto:burhan380@gmail.com">burhan380@gmail.com</a>
+              <a href="/contact">{t('nav.contact')}</a>
             </p>
           </div>
         </div>
@@ -42,8 +42,8 @@ export default function Footer() {
           fontSize: 12, letterSpacing: '0.22em', color: 'var(--fg-3)',
           fontFamily: 'var(--font-body)', fontWeight: 400, textTransform: 'uppercase',
         }}>
-          <span>© {new Date().getFullYear()} ISAR FRISEUR · MÜNCHEN</span>
-          <span><a href="/imprint">{t('foot.imprint')}</a> · <a href="/privacy">{t('foot.privacy')}</a></span>
+          <span>© {new Date().getFullYear()} ISAR FRISEUR, MÜNCHEN</span>
+          <span style={{ display: 'inline-flex', gap: 24 }}><a href="/imprint">{t('foot.imprint')}</a><a href="/privacy">{t('foot.privacy')}</a></span>
         </div>
       </div>
       <style>{`

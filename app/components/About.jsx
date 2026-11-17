@@ -10,11 +10,11 @@ export default function About() {
       <div className="container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
         <div style={{ position: 'relative', aspectRatio: '4/5', overflow: 'hidden' }}>
           <Image
-            src="/team/about-team.webp"
+            src="/team/about-team-2.webp"
             alt="Isar Friseur Team"
             fill
             sizes="(max-width: 900px) 100vw, 50vw"
-            style={{ objectFit: 'cover', objectPosition: 'center 60%' }}
+            style={{ objectFit: 'cover', objectPosition: 'center 75%' }}
             priority
           />
         </div>
