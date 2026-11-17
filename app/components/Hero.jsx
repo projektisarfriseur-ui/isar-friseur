@@ -42,7 +42,7 @@ export default function Hero() {
     >
       <div style={{
         position: 'sticky', top: 0,
-        height: '100vh', width: '100%',
+        height: '100svh', width: '100%',
         overflow: 'hidden',
       }}>
         <div style={{ position: 'absolute', inset: 0 }}>
@@ -66,32 +66,25 @@ export default function Hero() {
           }}/>
         </div>
 
-        <div className="hero-counter" style={{
+        <div className="hero-counter" aria-hidden="true" style={{
           position: 'absolute', left: 40, top: '50%',
           transform: 'translateY(-50%)',
-          display: 'flex', flexDirection: 'column', gap: 12,
+          display: 'flex', flexDirection: 'column', gap: 14,
           zIndex: 2,
         }}>
           {PHOTOS.map((_, i) => {
             const active = i === activeIdx;
             return (
-              <div key={i} style={{
-                fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
-                letterSpacing: '0.32em', textTransform: 'uppercase',
-                fontVariantNumeric: 'tabular-nums',
-                color: active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.38)',
-                paddingLeft: active ? 22 : 0,
-                position: 'relative',
-                transition: 'color 320ms ease, padding 320ms ease',
-              }}>
-                {active && <span style={{ position: 'absolute', left: 0, top: '50%', width: 16, height: 1, background: 'var(--ghg-copper)' }}/>}
-                {String(i + 1).padStart(2, '0')}
-              </div>
+              <span key={i} style={{
+                display: 'block', width: active ? 28 : 14, height: 1,
+                background: active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.38)',
+                transition: 'width 320ms var(--e-out), background 320ms ease',
+              }}/>
             );
           })}
         </div>
 
-        <div style={{
+        <div className="hero-content" style={{
           position: 'absolute', left: '50%', top: '52%',
           transform: 'translate(-50%, -50%)',
           zIndex: 2,
@@ -119,13 +112,13 @@ export default function Hero() {
             {t('hero.title1')}<br/>
             <em style={{ fontStyle: 'italic', fontWeight: 300, letterSpacing: '-0.005em' }}>{t('hero.title2')}</em>
           </h1>
-          <div style={{
+          <div className="hero-address" style={{
             marginTop: 32,
             fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, letterSpacing: '0.36em',
             color: 'rgba(255,255,255,0.66)',
             textTransform: 'uppercase',
           }}>{t('hero.address')}</div>
-          <div style={{ marginTop: 40, display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div className="hero-ctas" style={{ marginTop: 40, display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="/booking" className="btn">{t('hero.bookBtn')}</a>
             <a href="/services" className="btn-ghost">{t('hero.pricesBtn')}</a>
           </div>
@@ -141,6 +134,11 @@ export default function Hero() {
       <style>{`
         @media (max-width: 700px) {
           .hero-counter { display: none !important; }
+          .hero-content { padding: 0 20px !important; }
+          .hero-content h1 { font-size: clamp(44px, 13vw, 64px) !important; }
+          .hero-address { letter-spacing: 0.18em !important; font-size: 11px !important; }
+          .hero-ctas { display: grid !important; grid-template-columns: 1fr; width: 100%; max-width: 340px; }
+          .hero-ctas a { text-align: center; }
           .hero-scroll { right: 20px !important; bottom: 20px !important; gap: 6px !important; }
           .hero-scroll span { font-size: 10px !important; letter-spacing: 0.28em !important; }
           .hero-scroll > div { width: 18px !important; }

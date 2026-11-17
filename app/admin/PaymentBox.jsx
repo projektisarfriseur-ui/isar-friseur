@@ -73,7 +73,7 @@ export default function PaymentBox({ appt, onSaved }) {
           <div>
             <div style={{ fontSize: 18, fontWeight: 600 }}>
               <span aria-hidden="true">{METHOD_ICON[payment.method]} </span>
-              {formatEuro(payment.amount_minor, locale)} · {t(`pay.method.${payment.method}`)}
+              {formatEuro(payment.amount_minor, locale)}, {t(`pay.method.${payment.method}`)}
             </div>
             <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>{t('pay.by', { name: payment.recorded_by_name })}</div>
           </div>

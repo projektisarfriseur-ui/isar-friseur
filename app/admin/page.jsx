@@ -33,7 +33,7 @@ const NEXT_ACTIONS = {
   cancelled: [],
 };
 
-const euro = (minor, estimate, t, locale) => minor == null ? '—'
+const euro = (minor, estimate, t, locale) => minor == null ? '-'
   : `${estimate ? `${t('appt.from')} ` : ''}${(minor / 100).toLocaleString(locale, { minimumFractionDigits: minor % 100 ? 2 : 0 })} €`;
 
 const serviceName = (item, lang) => (lang === 'en' && item.name_en) || item.name_de;
@@ -60,7 +60,7 @@ export default function AdminCalendarPage() {
     const map = new Map((me?.staff || []).map((s, i) => [s.id, STAFF_COLORS[i % STAFF_COLORS.length]]));
     return (id) => map.get(id) || '#ffffff';
   }, [me]);
-  const nameOf = useCallback((id) => me?.staff.find(s => s.id === id)?.name || '—', [me]);
+  const nameOf = useCallback((id) => me?.staff.find(s => s.id === id)?.name || '-', [me]);
 
   const fetchEvents = useCallback(async (info, success, failure) => {
     setLoading(true);
@@ -203,15 +203,15 @@ function renderEvent(arg, isBoss, nameOf, t, lang) {
     const done = appt.status === 'completed';
     const [from, to] = (arg.timeText || '').split(/ [-–] /);
     const pay = appt.payment_method;
-    const tip = `${arg.timeText} · ${arg.event.title}${isBoss ? ` · ${nameOf(staffId)}` : ''} · ${appt.items.map(i => serviceName(i, lang)).join(', ')}`;
+    const tip = `${arg.timeText}, ${arg.event.title}${isBoss ? `, ${nameOf(staffId)}` : ''}, ${appt.items.map(i => serviceName(i, lang)).join(', ')}`;
     return (
       <div className="cal-evt cal-evt-week" title={tip}>
         <span className="cal-evt-time">
-          <span>{from}</span>{to && <> – <span>{to}</span></>}
+          <span>{from}</span>{to && <> - <span>{to}</span></>}
         </span>
         <span className="cal-evt-wstatus">
           {done ? '✓ ' : ''}{t(`status.${appt.status}`)}
-          {pay && <span className="cal-evt-wpay"> · {METHOD_ICON[pay]} {t(`pay.method.${pay}`)}</span>}
+          {pay && <span className="cal-evt-wpay">, {METHOD_ICON[pay]} {t(`pay.method.${pay}`)}</span>}
         </span>
       </div>
     );
@@ -226,7 +226,7 @@ function renderEvent(arg, isBoss, nameOf, t, lang) {
   );
   const sub = (
     <div className="cal-evt-sub">
-      {isBoss ? `${nameOf(staffId)} · ` : ''}{appt.items.map(i => serviceName(i, lang)).join(', ')}
+      {isBoss ? `${nameOf(staffId)}: ` : ''}{appt.items.map(i => serviceName(i, lang)).join(', ')}
     </div>
   );
   if (short) {
@@ -337,7 +337,7 @@ function AppointmentModal({ id, me, nameOf, onClose, onChanged }) {
               </h2>
               {meta && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: meta.color }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color }} />{t(`status.${appt.status}`)} · #{appt.reference}
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color }} />{t(`status.${appt.status}`)}, #{appt.reference}
                 </span>
               )}
             </div>
@@ -348,8 +348,8 @@ function AppointmentModal({ id, me, nameOf, onClose, onChanged }) {
           {appt && (
             <>
               <div className="cal-rows">
-                <Row label={t('appt.date')} value={fmt(appt.starts_at, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} />
-                <Row label={t('appt.time')} value={`${fmt(appt.starts_at, { hour: '2-digit', minute: '2-digit' })} – ${fmt(appt.ends_at, { hour: '2-digit', minute: '2-digit' })}`} />
+                <Row label={t('appt.date')} value={fmt(appt.starts_at, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })} />
+                <Row label={t('appt.time')} value={`${fmt(appt.starts_at, { hour: '2-digit', minute: '2-digit' })} - ${fmt(appt.ends_at, { hour: '2-digit', minute: '2-digit' })}`} />
                 <Row label={t('appt.stylist')} value={nameOf(appt.items[0]?.staff_id)} />
                 <Row label={t('appt.services')} value={appt.items.map(i => `${serviceName(i, lang)} (${i.duration_min} min)`).join(', ')} />
                 <Row label={t('appt.price')} value={euro(appt.total_price_minor, appt.price_is_estimate, t, locale)} />
@@ -399,7 +399,7 @@ function AppointmentModal({ id, me, nameOf, onClose, onChanged }) {
                   {appt.notes.map(n => (
                     <li key={n.id} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 12px' }}>
                       <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 4 }}>
-                        {n.author_name} · {fmt(n.created_at, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {n.author_name}, {fmt(n.created_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </div>
                       <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{n.body}</div>
                     </li>

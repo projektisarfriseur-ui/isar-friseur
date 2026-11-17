@@ -30,7 +30,7 @@ export default function LoginPage() {
       <LangToggle style={{ position: 'absolute', top: 12, right: 16 }} />
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 380 }} aria-labelledby="login-title">
         <h1 id="login-title" style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 400, letterSpacing: '0.12em', textAlign: 'center', color: 'var(--ghg-paper)', margin: 0 }}>
-          ISAR FRISEUR <span style={{ color: 'var(--ghg-copper)' }}>· TEAM</span>
+          ISAR FRISEUR <span style={{ color: 'var(--ghg-copper)' }}>TEAM</span>
         </h1>
         <div style={{ marginTop: 28, display: 'grid', gap: 10 }}>
           <label className="sr-only" htmlFor="login-email">{t('common.email')}</label>

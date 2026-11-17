@@ -18,6 +18,23 @@ function fmtDate(d) {
   return `${y}-${m}-${day}`;
 }
 
+// 'YYYY-MM-DD' -> 'DD.MM.YYYY' (display format used everywhere on the site)
+function displayDate(v) {
+  if (!v) return '';
+  const [y, m, d] = v.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+// ISO instant -> { weekday, date: 'DD.MM.YYYY', time: 'HH:MM' } in the salon's timezone
+function zonedParts(iso, tz, lang) {
+  const locale = lang === 'de' ? 'de-DE' : 'en-GB';
+  const parts = Object.fromEntries(new Intl.DateTimeFormat(locale, {
+    timeZone: tz, weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(iso)).map(p => [p.type, p.value]));
+  return { weekday: parts.weekday, date: `${parts.day}.${parts.month}.${parts.year}`, time: `${parts.hour}:${parts.minute}` };
+}
+
 // persist the whole booking flow so leaving + returning resumes where you left off
 // (v2: ids now come from the booking schema)
 const STORE_KEY = 'isar_booking_v2';
@@ -109,7 +126,7 @@ export default function Wizard() {
   const totalDur = chosen.reduce((sum, s) => sum + s.duration_min, 0);
   const totalFrom = chosen.reduce((sum, s) => sum + s.price_from, 0);
   const allFixed = chosen.every(s => s.is_fixed_price);
-  const priceLabel = chosen.length === 0 ? '—'
+  const priceLabel = chosen.length === 0 ? ''
     : allFixed ? `${totalFrom} €` : `${lang === 'de' ? 'ab' : 'from'} ${totalFrom} €`;
 
   // load slots when reaching step 3
@@ -196,17 +213,19 @@ export default function Wizard() {
   }
 
   if (done) {
-    const when = new Date(done.start).toLocaleString(lang === 'de' ? 'de-DE' : 'en-GB', {
-      timeZone: done.timezone, weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
-    });
+    const wp = zonedParts(done.start, done.timezone || 'Europe/Berlin', lang);
+    const when = `${wp.weekday}, ${wp.date}`;
     return (
       <div className="container" role="status" style={{ textAlign: 'center', maxWidth: 640, paddingTop: 80, paddingBottom: 80 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: '0.18em', color: 'var(--ghg-copper)' }}>
-          ✓ {lang === 'de' ? 'TERMIN GEBUCHT' : 'APPOINTMENT BOOKED'}
+          {lang === 'de' ? 'TERMIN GEBUCHT' : 'APPOINTMENT BOOKED'}
         </div>
         <h1 className="section-heading" style={{ marginTop: 18 }}>{when}</h1>
+        <p style={{ color: 'var(--fg-2)', marginTop: 8, fontSize: 20 }}>
+          {lang === 'de' ? `${wp.time} Uhr bei ${done.staff.name}` : `${wp.time} with ${done.staff.name}`}
+        </p>
         <p style={{ color: 'var(--fg-2)', marginTop: 12 }}>
-          {lang === 'de' ? `Bei ${done.staff.name} · Buchungsnummer ` : `With ${done.staff.name} · Reference `}
+          {lang === 'de' ? 'Buchungsnummer ' : 'Reference '}
           <strong style={{ color: 'var(--ghg-paper)', letterSpacing: '0.08em' }}>{done.reference}</strong>
         </p>
         <p style={{ color: 'var(--fg-2)', marginTop: 12, fontSize: 14 }}>
@@ -222,7 +241,7 @@ export default function Wizard() {
     <div className="container" style={{ maxWidth: 980 }}>
       <Steps step={step} lang={lang}/>
 
-      {/* STEP 1 — SERVICE */}
+      {/* STEP 1: SERVICE */}
       {step === 1 && (
         <div>
           <h2 className="section-heading">{lang === 'de' ? 'Wähle deine Leistungen.' : 'Pick your services.'}</h2>
@@ -232,7 +251,7 @@ export default function Wizard() {
               <div style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--ghg-copper)', marginBottom: 12, textTransform: 'uppercase' }}>
                 {GROUP_LABELS[gk][lang]}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(260px, 100%), 1fr))', gap: 10 }}>
                 {grouped[gk].map(s => {
                   const sel = selectedIds.includes(s.id);
                   return (
@@ -248,8 +267,9 @@ export default function Wizard() {
                         transition: 'all 300ms var(--e-brand)',
                       }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, letterSpacing: '0.02em', lineHeight: 1.25 }}>{lang === 'de' ? s.name_de : s.name_en}</div>
-                      <div style={{ fontSize: 12, color: sel ? 'rgba(255,255,255,0.85)' : 'var(--fg-2)', marginTop: 6, letterSpacing: '0.04em', wordSpacing: '0.08em' }}>
-                        {s.is_fixed_price ? `${s.price_from} €` : `${lang === 'de' ? 'ab' : 'from'} ${s.price_from} €`} · {s.duration_min} min
+                      <div style={{ display: 'flex', gap: 16, fontSize: 13, color: sel ? 'rgba(255,255,255,0.85)' : 'var(--fg-2)', marginTop: 6, letterSpacing: '0.04em' }}>
+                        <span>{s.is_fixed_price ? `${s.price_from} €` : `${lang === 'de' ? 'ab' : 'from'} ${s.price_from} €`}</span>
+                        <span>{s.duration_min} min</span>
                       </div>
                     </button>
                   );
@@ -265,15 +285,15 @@ export default function Wizard() {
         </div>
       )}
 
-      {/* STEP 2 — STYLIST */}
+      {/* STEP 2: STYLIST */}
       {step === 2 && (
         <div>
           <h2 className="section-heading">{lang === 'de' ? 'Wähle dein:e Stylist:in.' : 'Pick your stylist.'}</h2>
           <div className="copper-rule"/>
           <p style={{ maxWidth: 720, fontSize: 15, color: 'var(--fg-2)', marginBottom: 28, lineHeight: 1.6 }}>
             {lang === 'de'
-              ? 'Hinweis: Das ist nur deine Wunsch-Stylist:in. Falls sie oder er an deinem Termin nicht verfügbar ist, übernimmt eine andere Person aus unserem Team — alle bei uns sind erfahren und kümmern sich genauso gut um dein Haar.'
-              : 'Note: this is only your preferred stylist. If they are not available at your appointment time, another member of our team will take care of you — everyone here is experienced and will treat your hair just as well.'}
+              ? 'Hinweis: Das ist nur deine Wunsch-Stylist:in. Falls sie oder er an deinem Termin nicht verfügbar ist, übernimmt eine andere Person aus unserem Team. Alle bei uns sind erfahren und kümmern sich genauso gut um dein Haar.'
+              : 'Note: this is only your preferred stylist. If they are not available at your appointment time, another member of our team will take care of you. Everyone here is experienced and will treat your hair just as well.'}
           </p>
           <div className="stylist-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28, justifyItems: 'center', maxWidth: 960, margin: '0 auto' }}>
             <StylistCard
@@ -311,7 +331,7 @@ export default function Wizard() {
         </div>
       )}
 
-      {/* STEP 3 — DATE + TIME */}
+      {/* STEP 3: DATE + TIME */}
       {step === 3 && (
         <div>
           <h2 className="section-heading">{lang === 'de' ? 'Wann passt es?' : 'When works for you?'}</h2>
@@ -361,19 +381,19 @@ export default function Wizard() {
         </div>
       )}
 
-      {/* STEP 4 — DETAILS */}
+      {/* STEP 4: DETAILS */}
       {step === 4 && (
         <div>
           <h2 className="section-heading">{lang === 'de' ? 'Deine Daten.' : 'Your details.'}</h2>
           <div className="copper-rule"/>
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 50 }} className="bk-grid">
             <div style={{ display: 'grid', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <input placeholder={lang === 'de' ? 'Vorname' : 'First name'} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} required/>
-                <input placeholder={lang === 'de' ? 'Nachname' : 'Last name'} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} required/>
+              <div className="bk-names" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <input autoComplete="given-name" aria-label={lang === 'de' ? 'Vorname' : 'First name'} placeholder={lang === 'de' ? 'Vorname' : 'First name'} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} required/>
+                <input autoComplete="family-name" aria-label={lang === 'de' ? 'Nachname' : 'Last name'} placeholder={lang === 'de' ? 'Nachname' : 'Last name'} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} required/>
               </div>
-              <input placeholder={lang === 'de' ? 'Telefon' : 'Phone'} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}/>
-              <input type="email" placeholder={lang === 'de' ? 'E-Mail' : 'Email'} value={form.email} onChange={e => setForm({...form, email: e.target.value})} required/>
+              <input type="tel" inputMode="tel" autoComplete="tel" aria-label={lang === 'de' ? 'Telefon' : 'Phone'} placeholder={lang === 'de' ? 'Telefon' : 'Phone'} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}/>
+              <input type="email" inputMode="email" autoComplete="email" aria-label={lang === 'de' ? 'E-Mail' : 'Email'} placeholder={lang === 'de' ? 'E-Mail' : 'Email'} value={form.email} onChange={e => setForm({...form, email: e.target.value})} required/>
               <textarea placeholder={lang === 'de' ? 'Nachricht (optional)' : 'Message (optional)'} value={form.message} onChange={e => setForm({...form, message: e.target.value})}/>
               <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: 'var(--fg-2)' }}>
                 <input type="checkbox" checked={form.consent} onChange={e => setForm({...form, consent: e.target.checked})} style={{ width: 'auto', marginTop: 4 }}/>
@@ -398,7 +418,7 @@ export default function Wizard() {
               </ul>
               <div style={{ height: 1, background: 'rgba(255,255,255,0.12)', margin: '14px 0' }}/>
               <div style={{ fontSize: 14, color: 'var(--fg-2)' }}>
-                <div>{date} · {time} ({totalDur} min)</div>
+                <div>{displayDate(date)}, {time}{lang === 'de' ? ' Uhr' : ''} ({totalDur} min)</div>
                 {hold?.staff && <div style={{ marginTop: 4 }}>{lang === 'de' ? 'Bei' : 'With'} {hold.staff.name}</div>}
                 <div style={{ marginTop: 6, color: 'var(--ghg-copper)', fontWeight: 600 }}>{priceLabel}</div>
                 {hold && (
@@ -420,7 +440,8 @@ export default function Wizard() {
       )}
 
       <style>{`
-        @media (max-width: 900px) { .bk-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 900px) { .bk-grid { grid-template-columns: 1fr !important; gap: 28px !important; } }
+        @media (max-width: 480px) { .bk-names { grid-template-columns: 1fr !important; } }
       `}</style>
     </div>
   );
@@ -432,7 +453,13 @@ function Steps({ step, lang }) {
     : ['SERVICE', 'STYLIST', 'TIME', 'DETAILS'];
   const progress = ((step - 1) / (labels.length - 1)) * 100;
   return (
-    <div style={{ marginBottom: 48 }}>
+    <div className="bk-steps" style={{ marginBottom: 48 }}>
+      <style>{`
+        @media (max-width: 560px) {
+          .bk-steps { margin-bottom: 32px !important; }
+          .bk-step-label { font-size: 10px !important; letter-spacing: 0.12em !important; }
+        }
+      `}</style>
       <div style={{
         display: 'grid', gridTemplateColumns: `repeat(${labels.length}, 1fr)`,
         gap: 14, marginBottom: 18,
@@ -442,17 +469,11 @@ function Steps({ step, lang }) {
           const active = n === step;
           const done = n < step;
           return (
-            <div key={l} style={{
-              display: 'flex', flexDirection: 'column', gap: 6,
-              color: active || done ? 'var(--ghg-paper)' : 'rgba(255,255,255,0.45)',
+            <div key={l} aria-current={active ? 'step' : undefined} style={{
+              color: active ? 'var(--ghg-copper)' : done ? 'var(--ghg-paper)' : 'rgba(255,255,255,0.45)',
               transition: 'color 220ms ease',
             }}>
-              <span style={{
-                fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 300,
-                color: active ? 'var(--ghg-copper)' : done ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.35)',
-                lineHeight: 1,
-              }}>{String(n).padStart(2, '0')}</span>
-              <span style={{
+              <span className="bk-step-label" style={{
                 fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600,
                 letterSpacing: '0.24em', textTransform: 'uppercase',
               }}>{l}</span>
@@ -492,7 +513,7 @@ function StylistCard({ active, onClick, name, photo, placeholder, lang, slug, su
         transform: active ? 'translateY(-4px)' : 'none',
       }}>
       <div style={{
-        width: 220, height: 220,
+        width: 'min(220px, 100%)', aspectRatio: '1 / 1',
         margin: '0 auto',
         borderRadius: '50%',
         overflow: 'hidden',
@@ -639,17 +660,34 @@ function Calendar({ lang, today, monthCursor, setMonthCursor, value, onChange })
 
 function SummaryBar({ lang, chosen, totalDur, priceLabel, children }) {
   return (
-    <div style={{
-      marginTop: 36, display: 'flex', justifyContent: 'space-between',
+    <div className="bk-summary" style={{
+      marginTop: 36, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       gap: 14, flexWrap: 'wrap', paddingTop: 22,
       borderTop: '1px solid rgba(255,255,255,0.1)',
     }}>
-      <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>
+      <div style={{ fontSize: 13, color: 'var(--fg-2)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
         {chosen.length === 0
-          ? (lang === 'de' ? 'Noch keine Leistung gewählt' : 'No service selected yet')
-          : `${chosen.length} ${lang === 'de' ? 'Leistung(en)' : 'service(s)'} · ${totalDur} min · ${priceLabel}`}
+          ? <span>{lang === 'de' ? 'Noch keine Leistung gewählt' : 'No service selected yet'}</span>
+          : <>
+              <span>{chosen.length} {lang === 'de' ? (chosen.length === 1 ? 'Leistung' : 'Leistungen') : (chosen.length === 1 ? 'service' : 'services')}</span>
+              <span>{totalDur} min</span>
+              <span style={{ color: 'var(--ghg-copper)' }}>{priceLabel}</span>
+            </>}
       </div>
-      <div style={{ display: 'flex', gap: 10 }}>{children}</div>
+      <div className="bk-summary-actions" style={{ display: 'flex', gap: 10 }}>{children}</div>
+      <style>{`
+        @media (max-width: 640px) {
+          .bk-summary {
+            position: sticky; bottom: 0; z-index: 20;
+            margin-left: -20px; margin-right: -20px;
+            padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+            background: rgba(10, 10, 10, 0.96);
+            backdrop-filter: blur(10px);
+          }
+          .bk-summary-actions { width: 100%; }
+          .bk-summary-actions > button { flex: 1; min-height: 48px; }
+        }
+      `}</style>
     </div>
   );
 }
