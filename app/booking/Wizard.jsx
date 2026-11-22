@@ -295,7 +295,7 @@ export default function Wizard() {
               ? 'Hinweis: Das ist nur deine Wunsch-Stylist:in. Falls sie oder er an deinem Termin nicht verfügbar ist, übernimmt eine andere Person aus unserem Team. Alle bei uns sind erfahren und kümmern sich genauso gut um dein Haar.'
               : 'Note: this is only your preferred stylist. If they are not available at your appointment time, another member of our team will take care of you. Everyone here is experienced and will treat your hair just as well.'}
           </p>
-          <div className="stylist-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28, justifyItems: 'center', maxWidth: 960, margin: '0 auto' }}>
+          <div className="stylist-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28, alignItems: 'stretch', maxWidth: 960, margin: '0 auto' }}>
             <StylistCard
               active={stylistId === 'any'}
               onClick={() => setStylistId('any')}
@@ -503,18 +503,22 @@ function StylistCard({ active, onClick, name, photo, placeholder, lang, slug, su
       role="button"
       aria-pressed={active}
       style={{
+        // Every card fills its grid cell, so all boxes share one width and row height
+        width: '100%', height: '100%',
+        boxSizing: 'border-box',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
         textAlign: 'center', cursor: 'pointer',
         color: 'var(--ghg-paper)',
         padding: 22,
-        border: active ? '2px solid var(--ghg-copper)' : '1px solid rgba(255,255,255,0.08)',
-        background: active ? 'rgba(255,90,31,0.06)' : 'transparent',
-        boxShadow: active ? '0 18px 48px -20px rgba(255,90,31,0.45)' : 'none',
-        transition: 'all 280ms var(--e-brand)',
-        transform: active ? 'translateY(-4px)' : 'none',
+        // Border stays 1px in both states; the active ring is an inset shadow so the size never shifts
+        border: `1px solid ${active ? 'var(--ghg-copper)' : 'rgba(255,255,255,0.08)'}`,
+        boxShadow: active ? 'inset 0 0 0 1px var(--ghg-copper)' : 'none',
+        background: active ? 'rgba(224,102,47,0.06)' : 'transparent',
+        transition: 'border-color 280ms var(--e-brand), background 280ms var(--e-brand), box-shadow 280ms var(--e-brand)',
       }}>
       <div style={{
         width: 'min(220px, 100%)', aspectRatio: '1 / 1',
-        margin: '0 auto',
+        flexShrink: 0,
         borderRadius: '50%',
         overflow: 'hidden',
         background: photo ? '#1a1410' : 'linear-gradient(135deg, #1a1410, #5a3220)',

@@ -53,14 +53,14 @@ export default function Products() {
             : 'The products we use in the salon, you can take them home. We recommend honestly, only what fits your hair.'}
         </p>
 
-        <div className="products-grid" style={{
+        <div className="products-grid stagger" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 28,
         }}>
-          {PRODUCTS.map((p) => (
+          {PRODUCTS.map((p, i) => (
             <article key={p.img} className="product-tile" style={{
-              display: 'flex', flexDirection: 'column',
+              '--i': i, display: 'flex', flexDirection: 'column',
             }}>
               <div className="product-img" style={{
                 aspectRatio: '4 / 5',
