@@ -36,45 +36,26 @@ export default function Team() {
           {t('team.intro')}
         </p>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'center' }} className="team-grid">
+        <div className="team-grid stagger">
           {PEOPLE.map((p, i) => (
             <button
               key={p.name}
               type="button"
               onClick={() => setActive(i)}
               className="team-card"
-              style={{
-                width: 280, textAlign: 'center',
-                background: 'transparent', border: 0, padding: 0,
-                color: 'inherit', cursor: 'pointer',
-              }}
+              style={{ '--i': i }}
               aria-label={`${t('team.profileOf')} ${p.name}`}
             >
-              <div className="team-photo" style={{
-                width: 260, height: 260,
-                margin: '0 auto',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                background: '#1a1410',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--ghg-copper)',
-                fontFamily: 'var(--font-display)',
-                fontSize: 84, letterSpacing: '0.02em',
-                transition: 'transform 220ms ease',
-              }}>
+              <div className={`team-photo${p.photo ? '' : ' is-empty'}`}>
                 {p.photo ? (
-                  <img
-                    src={p.photo}
-                    alt={p.name}
-                    width={260} height={260}
-                    loading="lazy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageRendering: '-webkit-optimize-contrast' }}
-                  />
-                ) : p.name[0]}
+                  <img src={p.photo} alt={p.name} width={360} height={450} loading="lazy"/>
+                ) : (
+                  <span aria-hidden="true" className="team-monogram">{p.name[0]}</span>
+                )}
               </div>
-              <div style={{ marginTop: 18 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 30, letterSpacing: '0.01em' }}>{p.name}</div>
-                <div style={{ fontFamily: 'var(--font-body)', fontWeight: 400, fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--ghg-copper)', marginTop: 6 }}>{p.role[lang] || p.role.en}</div>
+              <div className="team-meta">
+                <div className="team-name">{p.name}</div>
+                <div className="team-role">{p.role[lang] || p.role.en}</div>
               </div>
             </button>
           ))}
@@ -119,9 +100,9 @@ export default function Team() {
             </button>
 
             <div style={{
-              width: 420, height: 420,
-              borderRadius: '50%', overflow: 'hidden',
-              background: '#1a1410',
+              width: 420, aspectRatio: '4 / 5',
+              overflow: 'hidden',
+              background: 'linear-gradient(160deg, #2a2420 0%, #171412 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'var(--ghg-copper)',
               fontFamily: 'var(--font-display)',
@@ -132,7 +113,7 @@ export default function Team() {
                 <img
                   src={person.photo}
                   alt={person.name}
-                  width={420} height={420}
+                  width={420} height={525}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
               ) : person.name[0]}
@@ -168,8 +149,8 @@ export default function Team() {
                   border: '1px solid var(--ghg-copper)',
                   padding: '14px 28px',
                   textDecoration: 'none',
-                  transition: 'background 180ms ease, box-shadow 180ms ease',
-                  boxShadow: '0 4px 18px rgba(255,90,31,0.28)',
+                  transition: 'background 180ms ease',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18)',
                 }}
               >
                 {t('team.viewWork')} →
@@ -181,12 +162,59 @@ export default function Team() {
       )}
 
       <style>{`
-        .team-card:hover .team-photo {
-          transform: translateY(-4px);
+        .team-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 56px 28px;
+          padding-bottom: 56px;
         }
-        .gallery-btn:hover {
-          background: var(--ghg-rust) !important;
-          box-shadow: 0 6px 24px rgba(255,90,31,0.42) !important;
+        /* Offset every second column: breaks the uniform row into a staggered rhythm */
+        .team-grid > .team-card:nth-child(even) { margin-top: 56px; }
+        .team-card {
+          background: transparent; border: 0; padding: 0;
+          color: inherit; cursor: pointer; text-align: left;
+        }
+        .team-photo {
+          position: relative; aspect-ratio: 4 / 5; overflow: hidden;
+          background: linear-gradient(160deg, #2a2420 0%, #171412 100%);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+        }
+        .team-photo img {
+          width: 100%; height: 100%; object-fit: cover; display: block;
+          transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1), filter 700ms cubic-bezier(0.16, 1, 0.3, 1);
+          filter: saturate(0.9);
+        }
+        .team-photo.is-empty { display: flex; align-items: center; justify-content: center; }
+        .team-monogram {
+          font-family: var(--font-display); font-style: italic; font-weight: 300;
+          font-size: clamp(72px, 9vw, 120px); line-height: 1;
+          color: rgba(224, 102, 47, 0.75);
+        }
+        .team-meta {
+          display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+          margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);
+        }
+        .team-name { font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.1; }
+        .team-role {
+          font-family: var(--font-body); font-weight: 500; font-size: 10px;
+          letter-spacing: 0.22em; text-transform: uppercase; color: var(--ghg-copper);
+          text-align: right;
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .team-card:hover .team-photo img { transform: scale(1.04); filter: saturate(1.05); }
+        }
+        .team-card:active .team-photo { transform: scale(0.99); }
+        .team-card:focus-visible { outline: 2px solid var(--ghg-copper); outline-offset: 6px; }
+        .gallery-btn:hover { background: var(--ghg-rust) !important; }
+        @media (max-width: 1000px) {
+          .team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 20px; }
+        }
+        @media (max-width: 480px) {
+          .team-grid { gap: 32px 14px; padding-bottom: 32px; }
+          .team-grid > .team-card:nth-child(even) { margin-top: 32px; }
+          .team-meta { flex-direction: column; gap: 4px; align-items: flex-start; }
+          .team-role { text-align: left; }
+          .team-name { font-size: 22px; }
         }
         @media (max-width: 640px) {
           .team-modal {
@@ -198,7 +226,6 @@ export default function Team() {
           .team-modal > div:first-of-type {
             margin: 0 auto;
             width: 200px !important;
-            height: 200px !important;
             font-size: 84px !important;
           }
           .team-modal h3 { font-size: 44px !important; margin: 8px 0 12px !important; }

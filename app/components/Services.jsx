@@ -41,9 +41,9 @@ export default function Services() {
           {t('svc.intro')}
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 60 }} className="svc-grid">
-          {GROUPS.map(g => (
-            <div key={g.titleKey}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 60 }} className="svc-grid stagger">
+          {GROUPS.map((g, gi) => (
+            <div key={g.titleKey} style={{ '--i': gi }}>
               <div style={{
                 fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, fontSize: 30, letterSpacing: '0.02em',
                 color: 'var(--ghg-copper)', marginBottom: 8,

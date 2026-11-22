@@ -24,15 +24,30 @@ export default function Contact() {
 
         <form
           onSubmit={(e) => { e.preventDefault(); setSent(true); }}
-          style={{ display: 'grid', gap: 12 }}
+          style={{ display: 'grid', gap: 18 }}
         >
-          <div className="contact-names" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <input name="vorname" autoComplete="given-name" aria-label={t('contact.firstName')} placeholder={t('contact.firstName')} required/>
-            <input name="nachname" autoComplete="family-name" aria-label={t('contact.lastName')} placeholder={t('contact.lastName')} required/>
+          <div className="contact-names" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <label className="field">
+              <span className="field-label">{t('contact.firstName')}</span>
+              <input name="vorname" autoComplete="given-name" required/>
+            </label>
+            <label className="field">
+              <span className="field-label">{t('contact.lastName')}</span>
+              <input name="nachname" autoComplete="family-name" required/>
+            </label>
           </div>
-          <input name="telefon" type="tel" inputMode="tel" autoComplete="tel" aria-label={t('contact.phone')} placeholder={t('contact.phone')}/>
-          <input name="email" type="email" inputMode="email" autoComplete="email" aria-label={t('contact.email')} placeholder={t('contact.email')} required/>
-          <textarea name="nachricht" placeholder={t('contact.message')} required style={{ minHeight: 140, resize: 'vertical' }}/>
+          <label className="field">
+            <span className="field-label">{t('contact.phone')}</span>
+            <input name="telefon" type="tel" inputMode="tel" autoComplete="tel"/>
+          </label>
+          <label className="field">
+            <span className="field-label">{t('contact.email')}</span>
+            <input name="email" type="email" inputMode="email" autoComplete="email" required/>
+          </label>
+          <label className="field">
+            <span className="field-label">{t('contact.message')}</span>
+            <textarea name="nachricht" required style={{ minHeight: 140, resize: 'vertical' }}/>
+          </label>
           <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: 'var(--fg-2)', marginTop: 8, lineHeight: 1.5 }}>
             <input type="checkbox" required style={{ width: 'auto', marginTop: 3, flexShrink: 0 }}/>
             <span>{t('contact.consent')}</span>
